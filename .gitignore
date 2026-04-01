@@ -1,0 +1,46 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub/
+build/
+**/coverage/
+
+# Generated
+*.log
+
+# Packaging metadata
+*.egg-info/
+
+# Python virtualenvs in apps
+**/.venv/
+
+# Ignore Large Data
+data/training_raw/
+data/training_clean/
+*.rar
+*.zip
+*.bin
+*.pt

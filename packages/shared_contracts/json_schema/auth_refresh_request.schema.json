@@ -1,0 +1,13 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AuthRefreshRequest",
+  "type": "object",
+  "required": ["refresh_token"],
+  "properties": {
+    "refresh_token": {
+      "type": "string",
+      "minLength": 10
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,9 @@
+﻿00:00 +0: loading C:/NDT/PJ/MediSign_AI/apps/mobile_flutter/test/features/onboarding/onboarding_page_test.dart
+00:00 +0: C:/NDT/PJ/MediSign_AI/apps/mobile_flutter/test/features/onboarding/onboarding_page_test.dart: OnboardingPage renders app title "MediSign AI"
+00:00 +1: C:/NDT/PJ/MediSign_AI/apps/mobile_flutter/test/widget_test.dart: renders onboarding with MediSign AI title
+00:00 +2: C:/NDT/PJ/MediSign_AI/apps/mobile_flutter/test/widget_test.dart: renders onboarding with MediSign AI title
+00:01 +3: C:/NDT/PJ/MediSign_AI/apps/mobile_flutter/test/widget_test.dart: renders onboarding with MediSign AI title
+00:01 +4: C:/NDT/PJ/MediSign_AI/apps/mobile_flutter/test/features/onboarding/onboarding_page_test.dart: OnboardingPage tapping mode button shows confirmation and calls onComplete
+00:01 +5: C:/NDT/PJ/MediSign_AI/apps/mobile_flutter/test/features/onboarding/onboarding_page_test.dart: OnboardingPage no overflow at textScaleFactor 2.0
+00:01 +6: C:/NDT/PJ/MediSign_AI/apps/mobile_flutter/test/features/onboarding/onboarding_page_test.dart: OnboardingPage no overflow at 320px width (small screen)
+00:01 +7: All tests passed!

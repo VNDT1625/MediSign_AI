@@ -1,0 +1,19 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MedicineScanResponse",
+  "type": "object",
+  "required": ["normalized_name", "risk_level", "warnings", "guidance"],
+  "properties": {
+    "normalized_name": {"type": "string"},
+    "risk_level": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    },
+    "warnings": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "guidance": {"type": "string"}
+  },
+  "additionalProperties": false
+}

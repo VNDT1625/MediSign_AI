@@ -1,0 +1,18 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TriageResponse",
+  "type": "object",
+  "required": ["urgency_level", "summary", "recommendations"],
+  "properties": {
+    "urgency_level": {
+      "type": "string",
+      "enum": ["non_emergency", "urgent", "emergency"]
+    },
+    "summary": {"type": "string"},
+    "recommendations": {
+      "type": "array",
+      "items": {"type": "string"}
+    }
+  },
+  "additionalProperties": false
+}

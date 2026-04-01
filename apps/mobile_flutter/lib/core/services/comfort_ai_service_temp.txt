@@ -1,0 +1,235 @@
+import 'soul_garden_service.dart';
+import 'memory_recall_service.dart';
+
+/// Comfort AI Service - AI an ủi thông minh dựa trên Soul Garden
+/// Khi user buồn, AI sẽ tìm trong nhật ký những khoảnh khắc vui để an ủi
+class ComfortAIService {
+  ComfortAIService._();
+  static final instance = ComfortAIService._();
+
+  final SoulGardenService _soulGarden = SoulGardenService.instance;
+  final MemoryRecallService _memoryRecall = MemoryRecallService.instance;
+
+  /// Lấy comforting message dựa trên context hiện tại
+  String getComfortingMessage({String? userMessage}) {
+    // 1. Nếu user chia sẻ điều gì đó
+    if (userMessage != null) {
+      return _generateContextualComfort(userMessage);
+    }
+
+    // 2. Lấy message dựa trên mood stats
+    return _soulGarden.getComfortingMessage();
+  }
+
+  /// Tạo comforting message dựa trên nội dung user chia sẻ
+  String _generateContextualComfort(String userMessage) {
+    final messageLower = userMessage.toLowerCase();
+
+    // Phát hiện loại vấn đề
+    if (messageLower.contains('buồn') || messageLower.contains('chán')) {
+      return _comfortSad();
+    }
+    if (messageLower.contains('stress') || messageLower.contains('căng')) {
+      return _comfortStressed();
+    }
+    if (messageLower.contains('mệt') || messageLower.contains('kiệt')) {
+      return _comfortTired();
+    }
+    if (messageLower.contains('lo') || messageLower.contains('lo lắng')) {
+      return _comfortAnxious();
+    }
+    if (messageLower.contains('cô đơn') || messageLower.contains('một mình')) {
+      return _comfortLonely();
+    }
+    if (messageLower.contains('tức giận') || messageLower.contains('bực')) {
+      return _comfortAngry();
+    }
+
+    // Mặc định
+    return _soulGarden.getComfortingMessage();
+  }
+
+  /// An ủi khi buồn
+  String _comfortSad() {
+    final positives = _soulGarden.getPositiveMemories(limit: 3);
+    final grateful = _soulGarden.getGratefulMemories(limit: 2);
+
+    if (positives.isNotEmpty) {
+      final memory = positives.first;
+      return '''💛 Tôi hiểu bạn đang buồn...
+
+Nhưng hãy nhớ lại khoảnh khắc này nhé:
+
+"${memory.content}"
+
+Mỗi ngày đều có những điều tích cực đang chờ đợi. Bạn muốn tôi giúp gì không?''';
+    }
+
+    if (grateful.isNotEmpty) {
+      return '''💛 Tôi hiểu...
+
+Hãy cùng nhau nhìn lại điều bạn từng biết ơn:
+
+"${grateful.first.content}"
+
+Biết ơn giúp chúng ta thấy cuộc sống tươi đẹp hơn. Bạn có muốn chia sẻ thêm không?''';
+    }
+
+    return '''💛 Tôi ở đây với bạn.
+
+Kể cho tôi nghe điều gì khiến bạn buồn được không?''';
+  }
+
+  /// An ủi khi stress
+  String _comfortStressed() {
+    final stats = _soulGarden.statsForDays(7);
+    final stressTags = stats.tagFrequency[EmotionTag.stressed] ?? 0;
+
+    String tips = '';
+    if (stressTags > 3) {
+      tips = '''
+💡 Gợi ý nhỏ:
+- Hãy thử hít thở sâu 3 lần
+- Đi bộ 5 phút ngoài trời
+- Uống một ly nước ấm''';
+    }
+
+    return '''😰 Tôi biết bạn đang căng thẳng...
+
+$tips
+
+Hãy nhớ rằng: "Mọi chuyện rồi sẽ qua thôi."
+
+Bạn có muốn tôi giúp gì không?''';
+  }
+
+  /// An ủi khi mệt
+  String _comfortTired() {
+    return '''😴 Bạn đang mệt mỏi...
+
+💡 Hãy thử:
+- Nghỉ ngơi một chút
+- Uống đủ nước
+- Ngủ đủ giấc
+
+Hãy chăm sóc bản thân nhé! Có cần tôi giúp gì không?''';
+  }
+
+  /// An ủi khi lo lắng
+  String _comfortAnxious() {
+    return '''😟 Tôi hiểu bạn đang lo lắng...
+
+💡 Một số điều có thể giúp:
+- Viết ra những gì bạn lo lắng
+- Tập trung vào hơi thở
+- Nhớ rằng: "Lo lắng không thay đổi được tương lai"
+
+Bạn muốn chia sẻ điều gì?''';
+  }
+
+  /// An ủi khi cô đơn
+  String _comfortLonely() {
+    final family = _soulGarden.getFamilyMemories(limit: 2);
+
+    if (family.isNotEmpty) {
+      return '''🥺 Bạn đang cảm thấy cô đơn...
+
+Hãy nhớ lại khoảnh khắc bên người thân:
+
+"${family.first.content}"
+
+Hãy liên hệ với họ nhé! Hoặc nếu cần, tôi ở đây lắng nghe.''';
+    }
+
+    return '''🥺 Tôi hiểu cảm giác cô đơn...
+
+💡 Gợi ý:
+- Gọi điện cho người thân
+- Tham gia hoạt động cộng đồng
+- Viết nhật ký để giải tỏa
+
+Bạn không cô đơn đâu!''';
+  }
+
+  /// An ủi khi tức giận
+  String _comfortAngry() {
+    return '''😡 Tôi hiểu bạn đang tức giận...
+
+Khi tức giận, hãy thử:
+- Hít thở sâu
+- Đếm đến 10
+- Đi bộ một vòng
+
+Rồi mọi thứ sẽ ổn thôi. Bạn có muốn chia sẻ điều gì khiến bạn bực không?''';
+  }
+
+  /// Tạo prompt cho AI để tích hợp vào consult flow
+  String getComfortingPromptContext() {
+    final buffer = StringBuffer();
+
+    // 1. Mood stats
+    final stats = _soulGarden.statsForDays(7);
+    buffer.writeln('## User Mood Context');
+    buffer.writeln('- Average mood: ${stats.averageScore.toStringAsFixed(1)}/5');
+    buffer.writeln('- Mood distribution: ${stats.distribution}');
+
+    // 2. Positive memories
+    final positives = _soulGarden.getPositiveMemories(days: 30, limit: 3);
+    if (positives.isNotEmpty) {
+      buffer.writeln('\n## Positive Memories (for comfort)');
+      for (final p in positives) {
+        buffer.writeln('- ${p.date.day}/${p.date.month}: ${p.content}');
+      }
+    }
+
+    // 3. Grateful entries
+    final grateful = _soulGarden.getGratefulMemories(limit: 2);
+    if (grateful.isNotEmpty) {
+      buffer.writeln('\n## Gratitude Entries');
+      for (final g in grateful) {
+        buffer.writeln('- ${g.content}');
+      }
+    }
+
+    // 4. Tags
+    if (stats.tagFrequency.isNotEmpty) {
+      buffer.writeln('\n## Recent Emotions');
+      for (final tag in stats.tagFrequency.entries) {
+        buffer.writeln('- ${tag.key.emoji} ${tag.key.label}: ${tag.value} lần');
+      }
+    }
+
+    return buffer.toString();
+  }
+
+  /// Kiểm tra xem có cần chuyển sang chuyên gia không
+  bool shouldRecommendProfessional() {
+    final stats = _soulGarden.statsForDays(14);
+    final negativeStreak = _soulGarden.negativeStreak;
+
+    // Nếu mood trung bình rất thấp trong 2 tuần
+    if (stats.averageScore < 1.5 && stats.totalEntries >= 7) {
+      return true;
+    }
+
+    // Nếu có chuỗi mood tiêu cực > 7 ngày
+    if (negativeStreak >= 7) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /// Lấy lời khuyên chuyên gia
+  String getProfessionalRecommendation() {
+    return '''❤️ Tôi lo lắng cho bạn.
+
+Qua nhật ký, tôi thấy bạn đang trải qua giai đoạn khó khăn. Tôi khuyên bạn nên:
+
+1. **Nói chuyện với chuyên gia tâm lý** - Họ có thể giúp bạn tốt hơn
+2. **Gọi điện cho người thân** - Bạn không cô đơn
+3. **Gọi đường dây hỗ trợ tâm lý** nếu cần
+
+Bạn có muốn tôi giúp đặt lịch hẹn không?''';
+  }
+}

@@ -1,0 +1,232 @@
+﻿openapi: 3.0.3
+info:
+  title: MediSign AI API
+  version: 0.2.0
+servers:
+  - url: http://localhost:8000/api/v1
+paths:
+  /health:
+    get:
+      tags: [health]
+      summary: Health check
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /consult/triage:
+    post:
+      tags: [consult]
+      summary: Medical triage consultation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TriageRequest'
+      responses:
+        '200':
+          description: Triage result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TriageResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /medicine/scan:
+    post:
+      tags: [medicine]
+      summary: Medicine scan and interaction hint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MedicineScanRequest'
+      responses:
+        '200':
+          description: Medicine scan result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MedicineScanResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Login and issue token pair
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthLoginRequest'
+      responses:
+        '200':
+          description: Token pair
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenPair'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh:
+    post:
+      tags: [auth]
+      summary: Refresh access and refresh tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRefreshRequest'
+      responses:
+        '200':
+          description: New token pair
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenPair'
+        '401':
+          description: Invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          example: ok
+
+    TriageRequest:
+      type: object
+      required: [symptom_text]
+      properties:
+        symptom_text:
+          type: string
+          minLength: 3
+          maxLength: 1000
+          example: Dau hong nhe 2 ngay
+        locale:
+          type: string
+          default: vi-VN
+          minLength: 2
+          maxLength: 10
+          example: vi-VN
+
+    TriageResponse:
+      type: object
+      required: [urgency_level, summary, recommendations]
+      properties:
+        urgency_level:
+          type: string
+          enum: [non_emergency, urgent, emergency]
+        summary:
+          type: string
+        recommendations:
+          type: array
+          items:
+            type: string
+
+    MedicineScanRequest:
+      type: object
+      required: [extracted_text]
+      properties:
+        extracted_text:
+          type: string
+          minLength: 2
+          maxLength: 500
+          example: Paracetamol 500mg
+        current_medications:
+          type: array
+          items:
+            type: string
+
+    MedicineScanResponse:
+      type: object
+      required: [normalized_name, risk_level, warnings, guidance]
+      properties:
+        normalized_name:
+          type: string
+        risk_level:
+          type: string
+          enum: [low, medium, high]
+        warnings:
+          type: array
+          items:
+            type: string
+        guidance:
+          type: string
+
+    AuthLoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+
+    AuthRefreshRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+          minLength: 10
+
+    AuthTokenPair:
+      type: object
+      required: [access_token, refresh_token, token_type]
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        token_type:
+          type: string
+          example: bearer
+
+    ErrorResponse:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+          nullable: true
+        request_id:
+          type: string
+          nullable: true
