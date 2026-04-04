@@ -1,6 +1,7 @@
 # MediSign AI – Tài liệu Yêu cầu Chi tiết (Requirements)
 
-> **Phiên bản:** 1.0 | **Ngày:** 13/02/2026  
+> **Phiên bản:** 1.1 | **Cập nhật:** 04/04/2026 *(Thêm Module 7: Cộng Đồng Lạc Quan)*
+> **Phiên bản gốc:** 1.0 | **Ngày:** 13/02/2026  
 > **Slogan:** "Hiểu bạn, không chỉ bệnh của bạn"
 
 ---
@@ -24,6 +25,7 @@
 15. [Dữ liệu cần thu thập & Chứng thực](#15-dữ-liệu-cần-thu-thập--chứng-thực)
 16. [Hạn chế & Giới hạn](#16-hạn-chế--giới-hạn)
 17. [Kế hoạch Training AI](#17-kế-hoạch-training-ai---chiến-lược-đạt-85+-accuracy)
+18. [Module 7: Cộng Đồng Lạc Quan (Community)](#18-module-7-cộng-đồng-lạc-quan-community)
 
 ---
 
