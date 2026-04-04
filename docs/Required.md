@@ -228,7 +228,7 @@ Kiểm tra: Có Local LLM trên máy không?
       ↓
 📡 Mạng 2G → SMS Gateway (Server)
       ↓
-🤖 Server xử lý bằng Gemini API
+🤖 Server xử lý bằng qwen cloud
       ↓
 📱 Trả lời SMS:
    "MediSign: Đau bụng + sốt 2 ngày có thể nghiêm trọng.
@@ -1405,6 +1405,271 @@ Hiển thị:
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+---
+
+---
+
+## 18. MODULE 7: CỘNG ĐỒNG LẠC QUAN (COMMUNITY)
+
+### 18.1 Mô tả tổng quan
+
+"Cộng Đồng Lạc Quan" là tính năng mạng xã hội (MXH) y tế **ẩn danh và có kiểm duyệt**, được tích hợp trong MediSign AI nhằm:
+
+- Tạo không gian **chia sẻ tâm sự, kinh nghiệm điều trị** cho người dùng — đặc biệt những người cô đơn, người bệnh mạn tính, người khuyết tật.
+- Hỗ trợ **sức khỏe tinh thần** thông qua kết nối cộng đồng lành mạnh.
+- Cho phép người dùng **tìm kiếm sự đồng cảm** mà không tiết lộ danh tính thật.
+
+> **Nguyên tắc cốt lõi:** Ẩn danh an toàn + Cộng đồng tích cực + Kiểm duyệt nghiêm ngặt.
+
+---
+
+### 18.2 Vấn đề giải quyết
+
+| Vấn đề | Giải pháp MediSign Community |
+|--------|------------------------------|
+| Người bệnh mạn tính cô đơn, không ai hiểu | Diễn đàn chia sẻ kinh nghiệm theo danh mục bệnh/tâm lý |
+| Sợ bị kỳ thị khi chia sẻ bệnh tình | Chế độ ẩn danh hoàn toàn (không hiển thị tên/ảnh thật) |
+| Thông tin sai lệch, lừa đảo thuốc giả tràn lan | Kiểm duyệt AI tự động + hệ thống báo cáo người dùng |
+| Không có nơi nhận tư vấn không chính thức | Phòng chat công cộng theo chủ đề sức khỏe |
+
+---
+
+### 18.3 Hồ sơ Cộng đồng (Community Profile)
+
+Mỗi người dùng có một danh tính riêng biệt, **tách hoàn toàn với tài khoản y tế thật**:
+
+| Thuộc tính | Mô tả | Ví dụ |
+|-----------|-------|-------|
+| `displayId` | Mã định danh ngắn, duy nhất, hiển thị công khai | `#LQ2024` |
+| `nickname` | Biệt danh người dùng tự chọn | "Người lạc quan" |
+| `avatarEmoji` | Avatar dạng emoji, không dùng ảnh thật | 🌸 |
+| `postCount` | Số bài đã đăng | 12 |
+| `friendCount` | Số bạn bè trong cộng đồng | 5 |
+
+> **Bảo mật:** Tên thật, email, số điện thoại, địa chỉ → **KHÔNG BAO GIỜ** được hiển thị trong Community.
+
+---
+
+### 18.4 Bảng tin (Feed) — Tính năng chính
+
+#### a) Đăng bài viết
+
+Người dùng chọn **danh mục bài viết** để phân loại:
+
+| Danh mục | Emoji | Yêu cầu Disclaimer Y tế? |
+|---------|-------|--------------------------|
+| Chung (`general`) | 💬 | ❌ |
+| Chia sẻ sức khỏe (`healthShare`) | 💊 | ✅ Bắt buộc |
+| Kinh nghiệm điều trị (`treatmentExperience`) | 🏥 | ✅ Bắt buộc |
+| Hỗ trợ tâm lý (`emotionalSupport`) | 💛 | ❌ |
+| Mẹo sinh hoạt (`lifestyleTips`) | 🌿 | ❌ |
+| Hỏi đáp (`question`) | ❓ | ✅ Bắt buộc |
+| Biết ơn (`gratitude`) | 🙏 | ❌ |
+| Động viên (`encouragement`) | 💪 | ❌ |
+
+**Luồng đăng bài:**
+```
+Người dùng soạn bài
+    ↓
+App kiểm tra sơ bộ (PII, scam, từ ngữ nhạy cảm) [Preview Moderation]
+    ↓
+Hiển thị cảnh báo nếu phát hiện vấn đề → người dùng chỉnh sửa
+    ↓
+Post → Trạng thái "Đang kiểm duyệt" (pending)
+    ↓
+AI kiểm duyệt tự động → Approved / Flagged (cần xem xét thủ công) / Rejected
+    ↓
+Bài viết xuất hiện trên Bảng tin
+```
+
+#### b) Tương tác bài viết
+
+- 👍 **Like** / bỏ Like bài viết
+- 💬 **Bình luận** (cũng qua kiểm duyệt)
+- 🔖 **Lưu** (Bookmark) bài viết để đọc lại
+- 🚩 **Báo cáo** nội dung vi phạm
+
+#### c) Bộ lọc danh mục
+
+- Bảng tin hỗ trợ lọc theo từng danh mục bài viết
+- Mặc định hiển thị "Tất cả" theo thứ tự mới nhất
+
+---
+
+### 18.5 Nhóm chat (Group Chat)
+
+Chat nhóm là không gian **riêng tư, kéo dài**, chỉ có người được mời mới tham gia:
+
+| Đặc điểm | Mô tả |
+|----------|-------|
+| **Loại** | Nhóm riêng tư (Private Group) |
+| **Tồn tại** | Kéo dài (không tự hủy) |
+| **Thành viên** | Tối đa không giới hạn cứng (do người tạo quản lý) |
+| **Tham gia** | Qua mời bằng `displayId` (ví dụ: `#LQ2024`) |
+| **Danh tính** | Ẩn danh (hiển thị nickname + avatar emoji) |
+
+**Tính năng nhóm chat:**
+- Tạo nhóm mới (đặt tên + mô tả)
+- Mời thành viên qua Display ID
+- Gửi tin nhắn text / emoji
+- Xem lịch sử tin nhắn
+- Rời nhóm
+
+---
+
+### 18.6 Phòng chat (Room Chat)
+
+Phòng chat là không gian **công khai, tạm thời**:
+
+| Đặc điểm | Mô tả |
+|----------|-------|
+| **Loại** | Phòng công khai (Public Room) |
+| **Tồn tại** | Tạm thời — **tự hủy khi tất cả người dùng rời đi** |
+| **Thành viên** | Tối đa 50 người (configurable) |
+| **Tham gia** | Tự do, không cần lời mời |
+| **Chủ đề** | Do người tạo đặt (chủ đề sức khỏe, tâm lý, v.v.) |
+
+**Tính năng phòng chat:**
+- Tạo phòng mới (tên + chủ đề)
+- Xem danh sách phòng đang hoạt động + số thành viên online
+- Tham gia phòng
+- Gửi/nhận tin nhắn real-time
+- Rời phòng (khi người cuối rời → phòng tự giải tán)
+
+---
+
+### 18.7 Hệ thống kiểm duyệt (Moderation System)
+
+Vì đây là nền tảng y tế, kiểm duyệt nội dung là **cực kỳ quan trọng** để tránh thông tin sai lệch gây hại:
+
+#### Kiểm duyệt tự động (AI Rule-Based)
+
+Hệ thống tự động phát hiện và gắn cờ:
+
+| Loại vi phạm | Mô tả | Mức độ |
+|-------------|-------|--------|
+| `spam` | Nội dung lặp lại, vô nghĩa | Thấp - Trung bình |
+| `scam` | Quảng cáo thuốc, "chữa khỏi 100%", không cần bác sĩ | Cao - Nghiêm trọng |
+| `pii` | Chứa thông tin cá nhân (SĐT, CCCD, địa chỉ, email) | Trung bình - Cao |
+| `medicalClaim` | Khẳng định bệnh/thuốc thiếu disclaimer | Trung bình |
+| `harassment` | Quấy rối, đe dọa người khác | Cao |
+| `inappropriate` | Nội dung không phù hợp | Trung bình - Cao |
+| `protectedGroup` | Ngôn ngữ thù địch nhắm vào nhóm người | Nghiêm trọng |
+
+**Các pattern scam phát hiện tự động:**
+- Mua/bán thuốc online
+- "Chữa khỏi", "tuyệt đối", "100% hiệu quả"
+- "Không cần bác sĩ"
+- Cam kết đảm bảo kết quả
+
+#### Trạng thái bài viết (Post Status)
+
+```
+pending  → approved  (AI duyệt OK)
+         → flagged   (cần xem xét thủ công)
+         → rejected  (vi phạm rõ ràng)
+
+approved → hidden    (admin ẩn tạm thời)
+         → rejected  (sau xem xét thủ công)
+```
+
+#### Dashboard Kiểm duyệt (Admin)
+
+Quản trị viên có màn hình riêng (`moderation_screen.dart`) để:
+- Xem danh sách bài viết đang chờ duyệt
+- Xem thống kê: tổng bài viết / đang chờ / đã duyệt hôm nay / đã từ chối / bị gắn cờ
+- Phân tích theo loại vi phạm (`flagsByType`)
+- Phê duyệt / Từ chối bài (có lý do)
+
+---
+
+### 18.8 Cảnh báo Pháp lý (Legal Warnings)
+
+Hệ thống hiển thị 3 loại cảnh báo bắt buộc cho người dùng mới:
+
+| ID | Tiêu đề | Loại |
+|----|---------|------|
+| `medical_disclaimer_1` | Cảnh báo y tế | Tham khảo — không thay thế bác sĩ |
+| `privacy_warning_1` | Bảo mật thông tin | KHÔNG chia sẻ SĐT, địa chỉ, CMND |
+| `scam_warning_1` | Cảnh báo lừa đảo | Không mua thuốc / chuyển tiền từ nguồn lạ |
+
+---
+
+### 18.9 Tính năng sức khỏe tinh thần tích hợp
+
+**a) Lời nhắn hàng ngày (Daily Affirmation)**
+- Mỗi ngày hệ thống hiển thị một câu nói động viên ở đầu Bảng tin
+- Thay đổi theo ngày, mang tính tích cực, khuyến khích
+
+**b) Check-in cảm xúc (Mood Check-in)**
+- Người dùng chọn cảm xúc hôm nay: 😢 Buồn / 😟 Lo lắng / 😐 Bình thường / 🙂 Vui / 😊 Tuyệt vời
+- Dữ liệu này liên kết với Soul Garden để AI phân tích xu hướng tâm lý
+
+**c) Nguồn hỗ trợ sức khỏe tâm thần (Mood Support Resources)**
+- Đường dây hỗ trợ tâm lý (hotline)
+- Bài viết / tài nguyên hữu ích
+- Hiển thị khi phát hiện người dùng có trạng thái tiêu cực kéo dài
+
+**d) Khu vực hỗ trợ cô đơn (Loneliness Support)**
+- Section riêng trong Bảng tin cho người dùng đang cô đơn, cần kết nối
+
+---
+
+### 18.10 Quyền riêng tư & Bảo mật trong Community
+
+| Dữ liệu | Hiển thị trong Community | Ghi chú |
+|---------|--------------------------|---------|
+| Tên thật | ❌ Không bao giờ | Chỉ lưu local |
+| Email / SĐT | ❌ Không bao giờ | Ẩn hoàn toàn |
+| Ảnh thật | ❌ Không bao giờ | Dùng avatar emoji |
+| Lịch sử y tế | ❌ Không bao giờ | Không liên kết với community |
+| Nickname | ✅ Tùy chọn | Người dùng tự đặt |
+| Display ID | ✅ Hiển thị | Dạng `#LQ2024` |
+| Avatar Emoji | ✅ Hiển thị | Không tiết lộ danh tính |
+
+---
+
+### 18.11 Database Schema (Community)
+
+Tương ứng với bảng `1.5 Bang community` trong `docs/database.md`:
+
+| Bảng | Chức năng |
+|------|-----------|
+| `community_posts` | Lưu bài viết (ẩn danh, kiểm duyệt trước) |
+| `post_comments` | Bình luận bài viết |
+| `post_likes` | Lượt Like |
+| `post_reports` | Báo cáo vi phạm |
+| `post_bookmarks` | Lưu bài viết |
+| `community_profiles` | Hồ sơ ẩn danh (nickname, avatar, displayId) |
+| `friend_requests` | Lời mời kết bạn (ẩn danh) |
+| `friendships` | Quan hệ bạn bè |
+| `chat_messages` | Tin nhắn (nhóm & phòng) |
+| `moderation_logs` | Lịch sử kiểm duyệt |
+| `daily_affirmations` | Câu nói lạc quan hàng ngày |
+
+---
+
+### 18.12 So sánh với mạng xã hội y tế thông thường
+
+| Tiêu chí | Facebook Group Y tế | Reddit r/health | **MediSign Community** |
+|----------|--------------------|-----------------|-----------------------|
+| Danh tính | ❌ Tên thật | ⚠️ Username | ✅ Ẩn danh hoàn toàn |
+| Kiểm duyệt | ⚠️ Yếu, chậm | ⚠️ Cộng đồng tự duyệt | ✅ AI + Thủ công |
+| Disclaimer y tế | ❌ Không bắt buộc | ❌ Không bắt buộc | ✅ Bắt buộc cho bài y tế |
+| Phát hiện scam | ❌ Rất yếu | ⚠️ Hạn chế | ✅ Pattern scam chuyên biệt |
+| Tích hợp với AI y tế | ❌ | ❌ | ✅ Liên kết Soul Garden |
+| Phòng chat tạm thời | ❌ | ❌ | ✅ Room Chat tự hủy |
+| Cảnh báo pháp lý | ❌ | ❌ | ✅ 3 lớp cảnh báo |
+
+---
+
+### 18.13 Hạn chế & Giới hạn
+
+- **Chưa có real-time chat**: Hiện tại dùng MockSocialService (polling), cần WebSocket/Firebase Realtime cho production.
+- **Kiểm duyệt AI còn đơn giản**: Rule-based, chưa dùng LLM để kiểm duyệt ngữ cảnh sâu.
+- **Chưa có End-to-End Encryption**: Tin nhắn nhóm chưa mã hóa E2E ở client.
+- **Chưa hỗ trợ media**: Bài viết và chat hiện chỉ hỗ trợ text + emoji, chưa có ảnh/video.
 
 ---
 
