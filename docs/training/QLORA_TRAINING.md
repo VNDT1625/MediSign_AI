@@ -18,10 +18,10 @@ Inputs and outputs are identical on every environment:
 
 ## Prerequisite: accept the MedGemma terms
 
-`google/medgemma-4b-it` is a gated model. Before the script can download
+`google/medgemma-1.5-4b-it` is a gated model. Before the script can download
 the weights you must:
 
-1. Sign in to <https://huggingface.co/google/medgemma-4b-it> and accept
+1. Sign in to <https://huggingface.co/google/medgemma-1.5-4b-it> and accept
    the MedGemma Health AI Developer Foundations terms.
 2. On the host machine, run:
 
@@ -133,9 +133,12 @@ python scripts/train_qlora_medgemma.py --max_steps 5
 ```
 
 The final adapter ends up in `output/medisign_medgemma4b/adapter/`.
-Its size budget is 200 MB (Requirement 1.8) — the QLoRA config in this
-repo (rank 32, four target modules) typically produces 120-160 MB
-adapters.
+This repo now uses rank 32 LoRA across attention and MLP projections
+(`q_proj`, `k_proj`, `v_proj`, `o_proj`, `gate_proj`, `up_proj`,
+`down_proj`) with `packing=True`, `weight_decay=0.01`,
+`neftune_noise_alpha=5`, and `warmup_ratio=0.05`. The adapter is larger
+than the old attention-only setup, so verify the zipped artifact size
+before release.
 
 ---
 
@@ -144,7 +147,7 @@ adapters.
 ```text
 python scripts/train_qlora_medgemma.py [OPTIONS]
 
-  --model_id TEXT                   default: google/medgemma-4b-it
+  --model_id TEXT                   default: google/medgemma-1.5-4b-it
   --train_file PATH                 default: data/training_clean/medgemma_4b/train.jsonl
   --eval_file PATH                  default: data/training_clean/medgemma_4b/eval.jsonl
   --output_dir PATH                 default: output/medisign_medgemma4b/checkpoints

@@ -68,21 +68,29 @@ def test_bnb_config_is_4bit_nf4_bf16_doublequant() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 1.5.2 — LoRA config (r=32, alpha=64, dropout=0.1, target modules)
+# 1.5.2 — LoRA config (r=32, alpha=64, dropout=0.05, target modules)
 # ---------------------------------------------------------------------------
 
 def test_lora_config_rank_alpha_dropout_match_spec() -> None:
     lora = tqm.build_lora_config()
     assert lora.r == 32
     assert lora.lora_alpha == 64
-    assert lora.lora_dropout == pytest.approx(0.1)
+    assert lora.lora_dropout == pytest.approx(0.05)
     assert lora.bias == "none"
     assert lora.task_type == "CAUSAL_LM"
 
 
 def test_lora_config_target_modules_match_spec_set() -> None:
     lora = tqm.build_lora_config()
-    expected = {"q_proj", "v_proj", "k_proj", "o_proj"}
+    expected = {
+        "q_proj",
+        "v_proj",
+        "k_proj",
+        "o_proj",
+        "gate_proj",
+        "up_proj",
+        "down_proj",
+    }
     # peft normalises target_modules to a set when given a list; accept both.
     actual = (
         set(lora.target_modules)
@@ -120,8 +128,14 @@ def test_training_args_use_paged_adamw_and_cosine_schedule(tmp_path: Path) -> No
     args = tqm.build_training_args(_make_cfg(tmp_path))
     assert args.optim == "paged_adamw_8bit"
     assert args.lr_scheduler_type == "cosine"
-    assert args.warmup_ratio == pytest.approx(0.03)
+    assert args.warmup_ratio == pytest.approx(0.05)
     assert args.learning_rate == pytest.approx(2e-4)
+
+
+def test_training_args_use_regularization_defaults(tmp_path: Path) -> None:
+    args = tqm.build_training_args(_make_cfg(tmp_path))
+    assert args.weight_decay == pytest.approx(0.01)
+    assert args.neftune_noise_alpha == pytest.approx(5)
 
 
 def test_training_args_eval_and_save_strategy_steps(tmp_path: Path) -> None:
@@ -153,13 +167,24 @@ def test_training_args_seed_is_fixed_to_42(tmp_path: Path) -> None:
 
 
 def test_training_args_max_seq_length_when_sftconfig_available(tmp_path: Path) -> None:
-    """If trl is installed, SFTConfig must expose max_seq_length=2048."""
+    """If trl is installed, SFTConfig must carry a 2048-token length cap."""
     trl = pytest.importorskip("trl")
     if not hasattr(trl, "SFTConfig"):
         pytest.skip("Older trl without SFTConfig — checked separately")
     args = tqm.build_training_args(_make_cfg(tmp_path))
-    assert getattr(args, "max_seq_length", None) == 2048
+    length = getattr(args, "max_length", None)
+    if length is None:
+        length = getattr(args, "max_seq_length", None)
+    assert length == 2048
     assert getattr(args, "dataset_text_field", None) == "text"
+
+
+def test_training_args_enable_packing_when_sftconfig_available(tmp_path: Path) -> None:
+    trl = pytest.importorskip("trl")
+    if not hasattr(trl, "SFTConfig"):
+        pytest.skip("Older trl without SFTConfig — checked in trainer kwargs")
+    args = tqm.build_training_args(_make_cfg(tmp_path))
+    assert getattr(args, "packing", None) is True
 
 
 # ---------------------------------------------------------------------------
@@ -168,7 +193,7 @@ def test_training_args_max_seq_length_when_sftconfig_available(tmp_path: Path) -
 
 def test_parse_args_defaults_match_spec_constants() -> None:
     cfg = tqm.parse_args([])
-    assert cfg.model_id == "google/medgemma-4b-it"
+    assert cfg.model_id == "google/medgemma-1.5-4b-it"
     assert cfg.num_epochs == 3
     assert cfg.max_seq_length == 2048
     assert cfg.per_device_batch_size == 4

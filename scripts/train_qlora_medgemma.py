@@ -2,7 +2,7 @@
 Task 1.5 — Configure & launch QLoRA fine-tuning for MedGemma 4B.
 
 This script is the production entry point for training the Vietnamese
-Medical Adapter on top of `google/medgemma-4b-it`. It is designed to
+Medical Adapter on top of `google/medgemma-1.5-4b-it`. It is designed to
 run unmodified on:
 
 * Kaggle (free 2× T4 — 16 GB each)
@@ -11,24 +11,25 @@ run unmodified on:
 
 > **Hugging Face access note**
 >
-> `google/medgemma-4b-it` is a gated model. Before running this
+> `google/medgemma-1.5-4b-it` is a gated model. Before running this
 > script you must accept the MedGemma terms on
-> <https://huggingface.co/google/medgemma-4b-it> and authenticate
+> <https://huggingface.co/google/medgemma-1.5-4b-it> and authenticate
 > the host machine with `huggingface-cli login`.
 
 Mapping to the spec
 -------------------
 * 1.5.1 Load MedGemma 4B with 4-bit NF4 quantization (bitsandbytes).
-* 1.5.2 QLoRA: r=32, alpha=64, dropout=0.1,
-        target_modules=["q_proj", "v_proj", "k_proj", "o_proj"].
+* 1.5.2 QLoRA: r=32, alpha=64, dropout=0.05,
+        target_modules=["q_proj", "v_proj", "k_proj", "o_proj",
+        "gate_proj", "up_proj", "down_proj"].
 * 1.5.3 SFTTrainer with TrainingArguments / SFTConfig:
         max_seq_length=2048, num_train_epochs=3,
         per_device_train_batch_size=4, gradient_accumulation_steps=4,
         logging_steps=50, save_steps=500.
 * 1.6.x Save adapter to `output/medisign_medgemma4b/adapter/`,
-        keep <= 200 MB (Requirement 1.8) — the QLoRA configuration
-        produces ~120-160 MB adapters which is comfortably inside
-        budget.
+        then verify the final artifact size before release. Targeting
+        attention + MLP projections improves adaptation quality but
+        produces a larger adapter than attention-only QLoRA.
 
 Usage
 -----
@@ -44,6 +45,7 @@ Usage
 from __future__ import annotations
 
 import argparse
+import inspect
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -56,7 +58,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 
-DEFAULT_MODEL_ID = "google/medgemma-4b-it"
+DEFAULT_MODEL_ID = "google/medgemma-1.5-4b-it"
 DEFAULT_TRAIN_FILE = ROOT / "data/training_clean/medgemma_4b/train.jsonl"
 DEFAULT_EVAL_FILE = ROOT / "data/training_clean/medgemma_4b/eval.jsonl"
 DEFAULT_OUTPUT_DIR = ROOT / "output/medisign_medgemma4b/checkpoints"
@@ -65,8 +67,16 @@ DEFAULT_ADAPTER_DIR = ROOT / "output/medisign_medgemma4b/adapter"
 # QLoRA hyper-parameters — Requirement 1.6
 LORA_RANK = 32
 LORA_ALPHA = 64
-LORA_DROPOUT = 0.1
-LORA_TARGET_MODULES = ["q_proj", "v_proj", "k_proj", "o_proj"]
+LORA_DROPOUT = 0.05
+LORA_TARGET_MODULES = [
+    "q_proj",
+    "v_proj",
+    "k_proj",
+    "o_proj",
+    "gate_proj",
+    "up_proj",
+    "down_proj",
+]
 
 # Training hyper-parameters — Requirement 1.7 / Task 1.5.3
 MAX_SEQ_LENGTH = 2048
@@ -77,7 +87,10 @@ LOGGING_STEPS = 50
 SAVE_STEPS = 500
 EVAL_STEPS = 500
 LEARNING_RATE = 2e-4
-WARMUP_RATIO = 0.03
+WARMUP_RATIO = 0.05
+WEIGHT_DECAY = 0.01
+NEFTUNE_NOISE_ALPHA = 5
+PACKING = True
 SAVE_TOTAL_LIMIT = 3
 SEED = 42
 
@@ -134,7 +147,7 @@ def build_bnb_config():
 
 
 def build_lora_config():
-    """1.5.2 — QLoRA adapter config (rank 32 / alpha 64 / dropout 0.1)."""
+    """1.5.2 — QLoRA adapter config with attention + MLP target modules."""
     from peft import LoraConfig  # type: ignore
 
     return LoraConfig(
@@ -170,6 +183,8 @@ def build_training_args(cfg: TrainConfig):
         warmup_ratio=WARMUP_RATIO,
         lr_scheduler_type="cosine",
         optim="paged_adamw_8bit",
+        weight_decay=WEIGHT_DECAY,
+        neftune_noise_alpha=NEFTUNE_NOISE_ALPHA,
         bf16=True,
         fp16=False,
         logging_steps=LOGGING_STEPS,
@@ -187,11 +202,18 @@ def build_training_args(cfg: TrainConfig):
     try:
         from trl import SFTConfig  # type: ignore
 
+        sft_signature = inspect.signature(SFTConfig.__init__)
+        length_kwarg = (
+            "max_length"
+            if "max_length" in sft_signature.parameters
+            else "max_seq_length"
+        )
+
         return SFTConfig(
             **common,
-            max_seq_length=cfg.max_seq_length,
+            **{length_kwarg: cfg.max_seq_length},
             dataset_text_field="text",
-            packing=False,
+            packing=PACKING,
         )
     except ImportError:
         from transformers import TrainingArguments  # type: ignore
@@ -278,7 +300,7 @@ def run_training(cfg: TrainConfig) -> Path:
     print(f"[1.5.1] Loading {cfg.model_id} in 4-bit NF4 ...")
     model, tokenizer = load_model_and_tokenizer(cfg.model_id)
 
-    print("[1.5.2] Building LoRA config (r=32, alpha=64, dropout=0.1)")
+    print("[1.5.2] Building LoRA config (r=32, alpha=64, dropout=0.05)")
     lora_config = build_lora_config()
 
     print("[1.5.3] Building TrainingArguments / SFTConfig")
@@ -301,7 +323,7 @@ def run_training(cfg: TrainConfig) -> Path:
             max_seq_length=cfg.max_seq_length,
             tokenizer=tokenizer,
             dataset_text_field="text",
-            packing=False,
+            packing=PACKING,
         )
     else:
         # SFTConfig-aware trl still wants the tokenizer (renamed to
