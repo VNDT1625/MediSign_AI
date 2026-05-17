@@ -168,7 +168,7 @@ def test_training_args_max_seq_length_when_sftconfig_available(tmp_path: Path) -
 
 def test_parse_args_defaults_match_spec_constants() -> None:
     cfg = tqm.parse_args([])
-    assert cfg.model_id == "google/medgemma-4b-it"
+    assert cfg.model_id == "google/medgemma-1.5-4b-it"
     assert cfg.num_epochs == 3
     assert cfg.max_seq_length == 2048
     assert cfg.per_device_batch_size == 4

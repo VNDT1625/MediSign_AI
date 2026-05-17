@@ -1,6 +1,6 @@
 # Medical Adapter Training
 
-Medical adapter hien tai duoc dinh huong cho `google/medgemma-4b-it` bang QLoRA.
+Medical adapter hien tai duoc dinh huong cho `google/medgemma-1.5-4b-it` bang QLoRA.
 
 ## Muc tieu
 

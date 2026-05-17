@@ -22,7 +22,7 @@ Huong train hien tai cua MediSign AI la **MedGemma 4B + QLoRA medical adapter**.
 
 | Thanh phan | Mo ta |
 | --- | --- |
-| Base model | `google/medgemma-4b-it` |
+| Base model | `google/medgemma-1.5-4b-it` |
 | Adapter | QLoRA Medical Adapter |
 | Train data | `data/training_clean/medgemma_4b/train.jsonl` |
 | Eval data | `data/training_clean/medgemma_4b/eval.jsonl` |

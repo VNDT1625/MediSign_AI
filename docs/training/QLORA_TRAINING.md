@@ -18,10 +18,10 @@ Inputs and outputs are identical on every environment:
 
 ## Prerequisite: accept the MedGemma terms
 
-`google/medgemma-4b-it` is a gated model. Before the script can download
+`google/medgemma-1.5-4b-it` is a gated model. Before the script can download
 the weights you must:
 
-1. Sign in to <https://huggingface.co/google/medgemma-4b-it> and accept
+1. Sign in to <https://huggingface.co/google/medgemma-1.5-4b-it> and accept
    the MedGemma Health AI Developer Foundations terms.
 2. On the host machine, run:
 
@@ -144,7 +144,7 @@ adapters.
 ```text
 python scripts/train_qlora_medgemma.py [OPTIONS]
 
-  --model_id TEXT                   default: google/medgemma-4b-it
+  --model_id TEXT                   default: google/medgemma-1.5-4b-it
   --train_file PATH                 default: data/training_clean/medgemma_4b/train.jsonl
   --eval_file PATH                  default: data/training_clean/medgemma_4b/eval.jsonl
   --output_dir PATH                 default: output/medisign_medgemma4b/checkpoints

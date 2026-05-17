@@ -2,7 +2,7 @@
 Task 1.5 — Configure & launch QLoRA fine-tuning for MedGemma 4B.
 
 This script is the production entry point for training the Vietnamese
-Medical Adapter on top of `google/medgemma-4b-it`. It is designed to
+Medical Adapter on top of `google/medgemma-1.5-4b-it`. It is designed to
 run unmodified on:
 
 * Kaggle (free 2× T4 — 16 GB each)
@@ -11,9 +11,9 @@ run unmodified on:
 
 > **Hugging Face access note**
 >
-> `google/medgemma-4b-it` is a gated model. Before running this
+> `google/medgemma-1.5-4b-it` is a gated model. Before running this
 > script you must accept the MedGemma terms on
-> <https://huggingface.co/google/medgemma-4b-it> and authenticate
+> <https://huggingface.co/google/medgemma-1.5-4b-it> and authenticate
 > the host machine with `huggingface-cli login`.
 
 Mapping to the spec
@@ -56,7 +56,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 
-DEFAULT_MODEL_ID = "google/medgemma-4b-it"
+DEFAULT_MODEL_ID = "google/medgemma-1.5-4b-it"
 DEFAULT_TRAIN_FILE = ROOT / "data/training_clean/medgemma_4b/train.jsonl"
 DEFAULT_EVAL_FILE = ROOT / "data/training_clean/medgemma_4b/eval.jsonl"
 DEFAULT_OUTPUT_DIR = ROOT / "output/medisign_medgemma4b/checkpoints"

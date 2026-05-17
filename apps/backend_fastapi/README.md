@@ -2,7 +2,7 @@
 
 ## AI Configuration
 
-Backend hien tai giu FastAPI nhe va goi model runtime rieng qua endpoint OpenAI-compatible. Model train chinh cua du an la `google/medgemma-4b-it` voi QLoRA medical adapter.
+Backend hien tai giu FastAPI nhe va goi model runtime rieng qua endpoint OpenAI-compatible. Model train chinh cua du an la `google/medgemma-1.5-4b-it` voi QLoRA medical adapter.
 
 | Mode | Model runtime | Adapter | Status |
 | --- | --- | --- | --- |

@@ -1,6 +1,6 @@
 # AI Training - Huong dan nhanh
 
-Muc tieu hien tai: train **QLoRA medical adapter** cho `google/medgemma-4b-it`.
+Muc tieu hien tai: train **QLoRA medical adapter** cho `google/medgemma-1.5-4b-it`.
 
 ## Tong quan
 
@@ -36,7 +36,7 @@ pip install -r scripts/requirements_train.txt
 huggingface-cli login
 ```
 
-`google/medgemma-4b-it` la gated model, can chap nhan dieu khoan tren Hugging Face truoc khi train.
+`google/medgemma-1.5-4b-it` la gated model, can chap nhan dieu khoan tren Hugging Face truoc khi train.
 
 ### Buoc 3: Smoke test
 
@@ -79,7 +79,7 @@ data/training_clean/medgemma_4b/
 
 | Setting | Value |
 | --- | --- |
-| Base model | `google/medgemma-4b-it` |
+| Base model | `google/medgemma-1.5-4b-it` |
 | Max sequence length | 2048 |
 | LoRA rank | 32 |
 | LoRA alpha | 64 |

@@ -42,7 +42,7 @@ adapter:
 
 ```env
 BACKEND_AI_PROVIDER=openai_compatible
-BACKEND_AI_MODEL=google/medgemma-4b-it
+BACKEND_AI_MODEL=google/medgemma-1.5-4b-it
 BACKEND_AI_MEDICAL_MODEL=medisign-medgemma-medical
 BACKEND_AI_PSYCHOLOGY_MODEL=medisign-medgemma-psychology
 BACKEND_AI_BASE_URL=http://localhost:8080/v1
@@ -97,7 +97,7 @@ For Soul Garden:
    python scripts/build_demo_knowledge_base.py
    ```
 3. Start a MedGemma runtime server that loads:
-   - base model: `google/medgemma-4b-it`
+   - base model: `google/medgemma-1.5-4b-it`
    - selected LoRA adapter: medical or psychology
 4. Set backend env to `BACKEND_AI_PROVIDER=openai_compatible` and keep `BACKEND_RAG_ENABLED=true`.
 5. Call `/api/v1/ai/rag/status` to confirm the knowledge index is ready.
