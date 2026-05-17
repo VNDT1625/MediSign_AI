@@ -1,0 +1,27 @@
+# MedGemma 4B QLoRA training dependencies (Task 1.5).
+#
+# These pins are the stable versions known to work for MedGemma + QLoRA
+# as of May 2026. They are all forward-compatible — newer minor releases
+# of any of these libraries should also work, but the pins below are the
+# floor we have actually exercised together.
+#
+# Install on a fresh GPU host with:
+#     pip install -r scripts/requirements_train.txt
+#
+# Notes:
+#   * `bitsandbytes` ships pre-built CUDA wheels — pick a wheel that
+#     matches your CUDA toolkit (cu118 / cu121 / cu124).
+#   * `flash-attn` is optional and not pinned here; on Ampere+ GPUs you
+#     can install it manually for ~30% faster training:
+#         pip install flash-attn --no-build-isolation
+
+torch>=2.4
+transformers>=4.50
+peft>=0.13
+bitsandbytes>=0.44
+accelerate>=0.34
+trl>=0.12
+datasets>=3.0
+sentencepiece
+protobuf
+huggingface_hub>=0.26

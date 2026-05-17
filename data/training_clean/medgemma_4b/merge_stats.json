@@ -1,0 +1,20 @@
+{
+  "total_loaded": 35513,
+  "per_source_loaded": {
+    "train.json": 16888,
+    "eval.json": 1876,
+    "medical_dialogue_full.json": 800,
+    "all_medical_vi.json": 13758,
+    "drug_db_qa.json": 968,
+    "vn_diseases.json": 126,
+    "vn_drugs_extended.json": 230,
+    "vn_drugs_commercial.json": 576,
+    "vn_symptoms_culture.json": 224,
+    "structured_response_training.json": 67
+  },
+  "after_dedup": 17263,
+  "duplicates_removed": 18250,
+  "valid_records": 17263,
+  "min_required": 15000,
+  "output_file": "data\\training_clean\\medgemma_4b\\merged_dataset.json"
+}

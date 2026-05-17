@@ -1,0 +1,12 @@
+{
+  "total": 17263,
+  "train": 15536,
+  "eval": 1727,
+  "disclaimer_added": 788,
+  "disclaimer_already_present": 16475,
+  "seed": 42,
+  "train_ratio": 0.9,
+  "input_file": "data\\training_clean\\medgemma_4b\\merged_dataset.json",
+  "train_file": "data\\training_clean\\medgemma_4b\\train.jsonl",
+  "eval_file": "data\\training_clean\\medgemma_4b\\eval.jsonl"
+}

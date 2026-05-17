@@ -1,316 +1,148 @@
 # AI Training Documentation
 
-> **Quick Start**: Xem `QUICKSTART.md` để bắt đầu nhanh!
+> Quick Start: xem `QUICKSTART.md`.
 
-## MediSign AI - 3 Deployment Modes
+Huong train hien tai cua MediSign AI la **MedGemma 4B + QLoRA medical adapter**.
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    MEDISIGN AI DEPLOYMENT MODES                     │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐│
-│  │    CLOUD        │    │     LOCAL        │    │    HYBRID       ││
-│  │   (Bảo mật)     │    │  (Security)      │    │  (Kết hợp)     ││
-│  ├─────────────────┤    ├─────────────────┤    ├─────────────────┤│
-│  │ Qwen 2.5 72B   │    │  Gemma 2B       │    │   Cloud +      ││
-│  │ + LoRA Y tế VN │    │  + 2 Adapters    │    │   Local        ││
-│  │ Self-hosted    │    │  On-device      │    │                 ││
-│  └─────────────────┘    └─────────────────┘    └─────────────────┘│
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
+## Deployment Modes
+
+```text
++--------------------+----------------------+----------------------+
+| Mode               | Runtime              | Purpose              |
++--------------------+----------------------+----------------------+
+| Backend fallback   | Rule-based services  | Always available     |
+| Medical AI         | MedGemma 4B server   | Medical assistant    |
+| Hybrid             | Rule-based + AI + RAG| Safer production UX  |
++--------------------+----------------------+----------------------+
 ```
 
----
+## Model Can Train
 
-## Models Cần Train
+### Medical Adapter
 
-### 1. Cloud Mode: Qwen 2.5 72B + Medical Adapter
+| Thanh phan | Mo ta |
+| --- | --- |
+| Base model | `google/medgemma-4b-it` |
+| Adapter | QLoRA Medical Adapter |
+| Train data | `data/training_clean/medgemma_4b/train.jsonl` |
+| Eval data | `data/training_clean/medgemma_4b/eval.jsonl` |
+| Output | `output/medisign_medgemma4b/adapter/` |
 
-| Thành phần | Mô tả |
-|------------|-------|
-| Base Model | Qwen 2.5 72B |
-| Adapter | **LoRA Medical Adapter** - fine-tuned cho y tế VN |
-| VRAM | ~40GB (4-bit quantization) |
-| Deploy | Self-hosted server (A100) |
+Medical adapter can hoc:
 
-**Tại sao Qwen 72B:**
-- Tiếng Việt tốt nhất
-- License thương mại (Apache 2.0)
-- Dễ fine-tune với LoRA/QLoRA
-- Hiệu năng cao
+- Hoi dap y te tieng Viet
+- Trieu chung va goi y muc do can chu y
+- Thuoc Viet Nam, hoat chat, dang bao che, so dang ky
+- Tinh than safety: khong chan doan chac chan, khuyen gap bac si khi can
 
-**Adapter Medical cần học:**
-- Triệu chứng → chẩn đoán gợi ý
-- Thuốc VN, tương tác thuốc
-- Phân mức độ nghiêm trọng (Xanh/Vàng/Đỏ)
-- Luôn ghi "không thay thế bác sĩ"
+### Personal/Psychology Adapter
 
-**⚠️ IMPORTANT: Gemini là FALLBACK, không phải primary:**
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│               CLOUD FALLBACK STRATEGY                        │
-├─────────────────────────────────────────────────────────────┤
-│                                                              │
-│  Request → Qwen 72B (primary)                               │
-│             │                                                │
-│             ├─ <80% load → OK                                │
-│             │                                                │
-│             ├─ 80-95% load → Qwen 7B (light)                │
-│             │                                                │
-│             └─ >95% load → Gemini Flash API ← BACKUP        │
-│                                                              │
-│  Khi server Qwen sập HOÀN TOÀN:                            │
-│    → Multi-region backup (Singapore → Japan)               │
-│    → Cuối cùng: Gemini Flash API                           │
-│                                                              │
-│  NOTE: Gemini CHỈ dùng khi Qwen không khả dụng             │
-│        Không phải để thay thế vĩnh viễn!                   │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
-
-### 2. Local Mode: Gemma 2B + 2 Adapters
-
-```
-RAM Usage:
-├── Gemma 2B (base)      = 1.5GB  ← Tải 1 lần
-├── Adapter Medical      = ~50MB  ← Gắn khi cần
-└── Adapter Personal     = ~50-100MB ← Swap khi cần
-    Total               = ~1.65GB
-```
-
-| Adapter | Kích thước | Chức năng | Cần train? |
-|---------|------------|-----------|------------|
-| **MediSign-Med** | ~50MB | AI Thạc sĩ Y tế | ✅ YES |
-| **MediSign-Personal** | ~50-100MB | AI Cá nhân hóa | ✅ YES |
-
-#### Adapter #1: Medical Adapter
-- Triệu chứng, chẩn đoán gợi ý
-- Thuốc VN, tương tác thuốc
-- Quản lý thuốc (cabinet)
-- Triaje mức độ khẩn cấp
-
-#### Adapter #2: Personal Adapter
-- Cá nhân hóa câu trả lời theo user
-- Hiểu Soul Garden (cảm xúc, thói quen)
-- Viết lại câu trả lời phù hợp với context
-- Encrypted, riêng từng user
-
----
-
-### 3. Hybrid Mode
-- Cloud: Qwen 72B cho complex queries
-- Local: Gemma 2B cho quick responses + offline
-- Adapter Personal sync encrypted lên cloud (backup)
-
----
+Adapter ca nhan hoa va SoulGarden van la muc tieu sau. Hien chua co dataset train rieng du chat luong trong repo.
 
 ## Data Directories
 
-```
+```text
 data/
-├── training_raw/        # Raw training data (chưa xử lý)
+├── training_raw/        # Raw training data
 ├── training_clean/      # Cleaned training data
-└── eval_sets/          # Evaluation datasets
+└── eval_sets/           # Fixed evaluation sets
 ```
 
-### Nguồn Dữ liệu Training
+## Current MedGemma Corpus
 
-| Nguồn | Nội dung | Số lượng |
-|-------|----------|----------|
-| MedQuAD (GitHub) | Q&A y khoa (Anh) | 47,000 cặp |
-| ChatDoctor (GitHub) | Hội thoại bệnh nhân-bác sĩ | 100,000 cặp |
-| Dược thư Quốc gia VN | Thuốc, liều, tương tác | 30,000 thuốc |
-| Tự tạo (VN) | Dịch + viết Q&A tiếng Việt | 5,000-10,000 cặp |
+```text
+data/training_clean/medgemma_4b/
+├── merged_dataset.json  # 17,196 records sau dedup
+├── train.jsonl          # 15,476 records
+├── eval.jsonl           # 1,720 records
+├── merge_stats.json
+└── format_stats.json
+```
 
----
+Nguon chinh:
+
+| Source | Records |
+| --- | ---: |
+| `all_medical` | 12,391 |
+| `medquad` | 1,362 |
+| `drug_db` | 968 |
+| `medical_dialogue_2010` | 800 |
+| `vn_drugs_commercial` | 576 |
+| `vn_symptoms_culture` | 224 |
 
 ## Training Pipeline
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    TRAINING PIPELINE                         │
-└─────────────────────────────────────────────────────────────┘
-
-Step 1: Thu thập dữ liệu
-        ├── Crawl/public datasets
-        ├── Translate to Vietnamese
-        └── Clean & validate
-
-Step 2: Prepare training data
-        ├── Format: Instruction tuning (system/user/assistant)
-        ├── Split: train/eval (90/10)
-        └── Tokenize
-
-Step 3: Train Medical Adapter
-        ├── Base: Qwen 2.5 72B / Gemma 2B
-        ├── Method: LoRA/QLoRA
-        ├── Hardware: A100 80GB / RTX 4090
-        └── Time: 8-12h (72B) / 2-4h (2B)
-
-Step 4: Evaluate
-        ├── Medical accuracy
-        ├── Safety (no harmful suggestions)
-        └── Vietnamese fluency
-
-Step 5: Deploy
-        ├── Cloud: vLLM server
-        └── Local: GGML/llama.cpp quantization
+```text
+Step 1: Collect / crawl / translate data
+Step 2: Merge and deduplicate
+Step 3: Apply MedGemma chat template
+Step 4: Split train/eval
+Step 5: Train QLoRA adapter
+Step 6: Evaluate safety and quality
+Step 7: Deploy adapter behind OpenAI-compatible runtime
 ```
 
----
+Commands:
+
+```bash
+python scripts/prepare_medgemma_data.py
+python scripts/format_medgemma_dataset.py
+python scripts/train_qlora_medgemma_smoke_test.py
+python scripts/train_qlora_medgemma.py
+```
 
 ## Current Implementation Status
 
 | Component | Status | Notes |
-|-----------|--------|-------|
-| Rule-based triage | ✅ Done | Keyword matching, Vietnamese |
-| Qwen via DashScope | ✅ Done | Optional enhancement |
-| Gemma 2B + Medical Adapter | 🔄 Ready to train | **PRIORITY - Xem QUICKSTART.md** |
-| Qwen 72B + Medical Adapter | 🔄 Planned | Cloud mode (cần A100) |
-| Personal Adapter | 🔄 Planned | Local mode |
-| Fitness Pose Detection | ✅ Done | ML Kit (pre-trained) |
+| --- | --- | --- |
+| Rule-based triage | Done | Keyword matching, Vietnamese normalization |
+| Drug lookup database | Done/MVP | DAV-backed database available |
+| MedGemma 4B medical adapter | Ready to train | Main training path |
+| Fixed eval sets | Incomplete | `data/eval_sets` needs real cases |
+| Personal adapter | Planned | Needs separate data |
+| Vision drug classifier | Not ready | Needs real medicine images |
 
----
+## Medicine Recognition
 
-## Training Roadmap - Bắt Đầu Ngay
+Current implementation is lookup-first:
 
-### Phase 1: MVP - Gemma 2B (PRIORITY CAO NHẤT)
-```
-⏱ Thời gian: 30-60 phút
-💰 Chi phí: ~$0 (Google Colab miễn phí)
-🎯 Kết quả: AI y tế tiếng Việt, chạy offline
-
-📋 Các bước:
-1. python scripts/01_prepare_data.py
-2. Upload lên Colab → chạy 02_train_gemma.py
-3. Download adapter
-4. Test với 03_inference.py
-```
-
-### Phase 2: Medicine Database
-```
-Mở rộng database thuốc VN
-Thu thập data từ Cục Dược
-Rule-based + lookup cho medicine
+```text
+Image or text
+    |
+    v
+OCR / vision runtime extracts drug name
+    |
+    v
+Backend drug lookup
+    |
+    v
+Drug info + warnings
 ```
 
-### Phase 3: Qwen 72B (Optional - khi có budget)
-```
-Chỉ train khi có server A100
-Dùng cho cloud mode với AI mạnh hơn
-```
+For direct image classification, the project still needs:
 
----
+- 10,000+ labeled medicine images for MVP
+- Multiple views: box, blister, pill, instruction leaflet
+- Labels mapped to drug name, registration number, active ingredient
+- Train/eval/test split by product and capture condition
 
-## Quick Links
+## Evaluation Priorities
 
-| File | Description |
-|------|-------------|
-| `QUICKSTART.md` | Hướng dẫn nhanh nhất ✅ BẮT ĐẦU TỪ ĐÂY |
-| `scripts/01_prepare_data.py` | Chuẩn bị data |
-| `scripts/02_train_gemma.py` | Train Gemma 2B (Colab) |
-| `scripts/02_train_qwen.py` | Train Qwen 72B (Server) |
-| `scripts/03_inference.py` | Test model |
+Before production, add fixed eval sets for:
 
----
-
-## References
-
-Module này nhận dạng thuốc từ ảnh chụp vỉ/hộp thuốc.
-
-### 2 Approaches Cần Train
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│               MEDICINE RECOGNITION PIPELINE                          │
-└─────────────────────────────────────────────────────────────────────┘
-
-📸 Chụp ảnh thuốc
-       │
-       ▼
-┌──────────────────┐     ┌──────────────────┐
-│  OCR + NLP      │     │  Image CNN       │
-│  (Text-based)   │     │  (Vision-based)  │
-├──────────────────┤     ├──────────────────┤
-│ • ML Kit/       │     │ • ResNet/Efficient│
-│   Tesseract    │     │   Net train      │
-│ • Extract text │     │ • Classify pills  │
-│ • Match DB     │     │ • Match visual   │
-└──────────────────┘     └──────────────────┘
-       │                        │
-       └────────┬───────────────┘
-                ▼
-┌─────────────────────────────────────────────┐
-│         MEDICINE DATABASE                    │
-│   (~30,000 thuốc VN từ Cục Dược)            │
-│   - Tên thuốc, hoạt chất                    │
-│   - Liều dùng, tác dụng phụ                 │
-│   - Tương tác thuốc                         │
-│   - Chống chỉ định                          │
-└─────────────────────────────────────────────┘
-```
-
-### Approach 1: OCR + NLP (Text-based)
-
-| Component | Technology | Status |
-|-----------|-----------|--------|
-| OCR | ML Kit / Tesseract | ✅ Có thể dùng |
-| Text processing | Rule-based (hiện tại) | ✅ MVP done |
-| **NLP Enhancement** | **Cần train** | 🔄 Planned |
-
-**Cần train:**
-- Fine-tune model để extract tên thuốc tiếng Việt từ OCR output
-- Xử lý abbreviations, typos phổ biến trong đơn thuốc VN
-- Map tên thương mại ↔ hoạt chất
-
-### Approach 2: Image Classification (Vision-based)
-
-| Component | Technology | Status |
-|-----------|-----------|--------|
-| Image classification | CNN/ViT | 🔄 Cần train |
-| Training data | Chụp ảnh thuốc thật | 📋 Thu thập |
-
-**Cần train:**
-- Dataset: 10,000+ ảnh thuốc VN (vỉ, hộp, viên)
-- Model: EfficientNet hoặc ViT fine-tuned
-- Classes: ~30,000 thuốc (hoặc cluster thành groups)
-
-### Data Sources
-
-| Nguồn | Nội dung | Số lượng |
-|-------|----------|----------|
-| Cục Dược VN | Database thuốc chính thức | ~30,000 thuốc |
-| Bệnh viện | Đơn thuốc mẫu (đã sanitize) | 5,000+ mẫu |
-| Tự chụp | Chụp ảnh thuốc thật | 10,000+ ảnh |
-
-### Current Implementation
-
-Xem: `apps/backend_fastapi/app/services/medicine_service.py`
-
-Hiện tại dùng rule-based:
-- Keyword matching cho tên thuốc
-- Tương tác thuốc đơn giản (Paracetamol + Alcohol, etc.)
-
-### Priority
-
-| Priority | Task | Notes |
-|----------|------|-------|
-| 1 | Mở rộng Medicine Database | Thêm 30,000 thuốc VN |
-| 2 | OCR Enhancement | Xử lý text tiếng Việt tốt hơn |
-| 3 | Image Classification | Nhận diện qua hình ảnh |
-
----
+- Vietnamese medical QA
+- Red-flag triage and emergency escalation
+- Dangerous medication advice refusal
+- Drug lookup correctness
+- Disclaimer compliance
+- Hallucination and uncertainty handling
 
 ## References
 
 - Quick Start: `QUICKSTART.md`
-- Data Prep: `scripts/01_prepare_data.py`
-- Gemma Training: `scripts/02_train_gemma.py`
-- Qwen Training: `scripts/02_train_qwen.py`
-- Inference: `scripts/03_inference.py`
-- Full Docs: `docs/Required.md` (Module 2: Camera Quét Thuốc)
-- Code: `apps/backend_fastapi/app/services/medicine_service.py`
+- MedGemma train guide: `docs/training/QLORA_TRAINING.md`
+- Data prep: `scripts/prepare_medgemma_data.py`
+- Formatting: `scripts/format_medgemma_dataset.py`
+- Training: `scripts/train_qlora_medgemma.py`
+- Backend AI client: `apps/backend_fastapi/app/services/ai_model_service.py`
+- Drug lookup: `apps/backend_fastapi/app/services/drug_lookup_service.py`

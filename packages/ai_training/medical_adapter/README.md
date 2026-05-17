@@ -1,100 +1,82 @@
 # Medical Adapter Training
 
-## Mục tiêu: Đạt 85%+ Accuracy
+Medical adapter hien tai duoc dinh huong cho `google/medgemma-4b-it` bang QLoRA.
 
-### Accuracy Targets
+## Muc tieu
 
-| Phase | Method | Expected Accuracy |
-|-------|--------|-------------------|
-| Baseline | Qwen 72B (no fine-tune) | 55-65% |
-| Phase 1 | Fine-tune + LoRA | 70-80% |
-| Phase 2 | + RAG | 80-85% |
-| Phase 3 | + Logic Layer | **85%+** |
+| Phase | Method | Expected outcome |
+| --- | --- | --- |
+| Baseline | MedGemma 4B without MediSign adapter | General medical assistant |
+| Phase 1 | QLoRA medical adapter | Better Vietnamese MediSign style and drug/triage responses |
+| Phase 2 | + RAG | More grounded answers |
+| Phase 3 | + Logic/safety layer | Better red-flag handling |
 
-### Hybrid Engine Architecture
+## Hybrid Engine Architecture
 
-```
+```text
 User Input
-    │
-    ▼
-┌─────────────────┐
-│  LLM (Qwen 72B)│ ← MedQuAD + ChatDoctor
-│  + Medical LoRA │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ RAG Layer      │ ← Medical Knowledge Base
-│ (FAISS Vector) │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ Symptom-Disease │ ← Disease-Symptom DB
-│ Logic Layer    │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│ Safety Layer   │ ← Red Flag Detection
-└────────┬────────┘
-         │
-         ▼
-    Response
+    |
+    v
++----------------------+
+| MedGemma 4B Runtime  |
+| + Medical LoRA       |
++----------+-----------+
+           |
+           v
++----------------------+
+| RAG Layer            |
+| Medical Knowledge DB |
++----------+-----------+
+           |
+           v
++----------------------+
+| Symptom/Drug Logic   |
+| Red Flag Rules       |
++----------+-----------+
+           |
+           v
+Response with disclaimer
 ```
 
 ## Data Sources
 
-| Dataset | Quantity | Purpose |
-|---------|----------|---------|
-| MedQuAD | 47,000 Q&A | Medical Q&A benchmark |
-| ChatDoctor | 100,000 dialogues | Patient-doctor conversations |
-| Disease-Symptom | 500+ diseases | Logic layer |
-| Dược thư VN | 30,000 drugs | Drug database |
+| Dataset | Purpose |
+| --- | --- |
+| MedQuAD-derived QA | Medical Q&A |
+| Medical dialogue data | Patient-doctor style answers |
+| Vietnamese drug data | Drug lookup and medicine education |
+| DAV drug registry data | Vietnamese registered drug database |
+| Synthetic Vietnamese data | Local phrasing and app-specific intents |
 
 ## Scripts
 
-| Script | Mô tả |
-|--------|-------|
-| `01_prepare_data.py` | Chuẩn bị data training |
-| `02_train_gemma.py` | Train Gemma 2B (mobile) |
-| `02_train_qwen.py` | Train Qwen 72B (server) |
-| `03_inference.py` | Test inference |
-| `04_deploy_server.py` | Deploy lên server |
-| `05_evaluate.py` | Evaluation benchmark |
-
-## Benchmark Comparison
-
-| Model | Accuracy | Notes |
-|-------|----------|-------|
-| Med-PaLM 2 (Google) | 86% | Research |
-| MedAlpaca-13B | 72% | Open source |
-| GPT-3.5 | 60% | General |
-| **MediSign (Target)** | **85%+** | Hybrid Engine |
+| Script | Mo ta |
+| --- | --- |
+| `scripts/prepare_medgemma_data.py` | Merge and deduplicate training data |
+| `scripts/format_medgemma_dataset.py` | Apply MedGemma chat template and split train/eval |
+| `scripts/train_qlora_medgemma.py` | Train QLoRA adapter |
+| `scripts/train_qlora_medgemma_smoke_test.py` | Validate train config without full training |
 
 ## Training Commands
 
 ```bash
-# Step 1: Prepare data
-python scripts/01_prepare_data.py --source medquad --lang en --model qwen_72b
-
-# Step 2: Train Qwen 72B
-python scripts/02_train_qwen.py
-
-# Step 3: Evaluate
-python scripts/05_evaluate.py --model ./output/medisign_qwen/adapter
+python scripts/prepare_medgemma_data.py
+python scripts/format_medgemma_dataset.py
+python scripts/train_qlora_medgemma_smoke_test.py
+python scripts/train_qlora_medgemma.py
 ```
 
 ## Evaluation Metrics
 
-- **Accuracy**: (Correct / Total) × 100
-- **Precision**: TP / (TP + FP)
-- **Recall**: TP / (TP + FN)
-- **F1-Score**: 2×(P×R)/(P+R)
-- **ROUGE-L**: Text similarity
+- Vietnamese answer quality
+- Medical factuality
+- Safety disclaimer presence
+- Red-flag escalation behavior
+- Drug lookup correctness
+- ROUGE/BLEU only as supporting text-similarity metrics
 
 ## Disclaimer
 
-- AI chỉ HỖ TRỢ, không thay thế bác sĩ
-- Luôn có disclaimer trong mọi response
-- Red flags → khuyến khích khám bác sĩ
+- AI chi ho tro, khong thay the bac si.
+- Luon co disclaimer trong response y te.
+- Red flags can khuyen kham/cap cuu ngay.

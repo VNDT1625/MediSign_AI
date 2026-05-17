@@ -40,7 +40,17 @@ build/
 # Ignore Large Data
 data/training_raw/
 data/training_clean/
+data/knowledge_base/
 *.rar
 *.zip
 *.bin
 *.pt
+
+# Local frontend/build artifacts
+node_modules/
+.next/
+out/
+dist/
+
+# Model outputs
+output/

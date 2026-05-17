@@ -1,27 +1,27 @@
-﻿# Backend FastAPI
+# Backend FastAPI
 
-## AI Triage Configuration
+## AI Configuration
 
-**IMPORTANT**: Xem `packages/ai_training/README.md` để hiểu đầy đủ về 3 deployment modes.
+Backend hien tai giu FastAPI nhe va goi model runtime rieng qua endpoint OpenAI-compatible. Model train chinh cua du an la `google/medgemma-4b-it` voi QLoRA medical adapter.
 
-### Tóm tắt:
-
-| Mode | Model | Adapter | Cần train? |
-|------|-------|---------|------------|
-| Cloud | Qwen 2.5 72B | Medical LoRA | ✅ Yes |
-| Local | Gemma 2B | Medical + Personal LoRA | ✅ Yes |
-| Hybrid | Qwen + Gemma | Cả hai | ✅ Yes |
-
-### Current MVP Implementation:
+| Mode | Model runtime | Adapter | Status |
+| --- | --- | --- | --- |
+| MVP fallback | Rule-based services | None | Works without GPU |
+| Medical AI | MedGemma 4B server | Medical LoRA | Ready to wire after training |
+| Psychology AI | MedGemma-compatible server | Psychology/Personal LoRA | Planned |
 
 Set these in `.env`:
+
 ```bash
-AI_PROVIDER=gemini          # "gemini", "qwen", hoặc "local"
-AI_API_KEY=                 # Để trống nếu chỉ dùng rule-based
-AI_MODEL=gemini-2.0-flash
+AI_PROVIDER=openai_compatible
+AI_BASE_URL=http://localhost:8001/v1
+AI_API_KEY=
+AI_MODEL=medisign-medgemma4b
+AI_MEDICAL_MODEL=medisign-medgemma4b-medical
+AI_PSYCHOLOGY_MODEL=medisign-medgemma4b-psychology
 ```
 
-Service vẫn work hoàn toàn chỉ với rule-based (không cần AI).
+Neu khong cau hinh model runtime, service van chay bang rule-based/mock fallback.
 
 ## Install
 
@@ -43,8 +43,27 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - `GET /api/v1/health`
 - `POST /api/v1/consult/triage`
 - `POST /api/v1/medicine/scan`
+- `POST /api/v1/ai/chat`
+- `GET /api/v1/ai/status`
+- `GET /api/v1/ai/rag/status`
+- `POST /api/v1/ai/rag/search`
+- `POST /api/v1/ai/rag/rebuild`
 - `POST /api/v1/auth/login`
 - `POST /api/v1/auth/refresh`
+
+## RAG after training
+
+Run or refresh the generated knowledge base first:
+
+```bash
+python ../../scripts/build_demo_knowledge_base.py
+```
+
+The backend loads `data/knowledge_base/knowledge_base.json`, builds a local
+BM25-style medical search index, and automatically injects retrieved context
+into `/api/v1/ai/chat` when `use_rag=true` (default). This works with the
+trained MedGemma runtime and also returns grounded fallback answers while the
+runtime is offline.
 
 ## Demo auth account
 

@@ -1,178 +1,107 @@
-# AI Training - Hướng Dẫn Nhanh
+# AI Training - Huong dan nhanh
 
-## 🎯 Mục tiêu: Đạt 85%+ Accuracy
+Muc tieu hien tai: train **QLoRA medical adapter** cho `google/medgemma-4b-it`.
 
----
+## Tong quan
 
-## 📋 Tổng Quan
+| Phase | Method | Output |
+| --- | --- | --- |
+| Baseline | MedGemma 4B instruction model | Chua co adapter MediSign |
+| Phase 1 | QLoRA medical adapter | `output/medisign_medgemma4b/adapter/` |
+| Phase 2 | + RAG | Grounding bang knowledge base |
+| Phase 3 | + Safety/logic layer | Triage va red-flag tot hon |
 
-| Phase | Method | Accuracy | Timeline |
-|-------|--------|----------|----------|
-| Baseline | Qwen 72B (no fine-tune) | 55-65% | - |
-| Phase 1 | Fine-tune + LoRA | 70-80% | 2 tuần |
-| Phase 2 | + RAG | 80-85% | 1 tuần |
-| Phase 3 | + Logic Layer | **85%+** | 1 tuần |
+## Bat dau nhanh
 
----
+### Buoc 1: Kiem tra data
 
-## 🚀 Bắt Đầu Nhanh
+Du lieu da duoc chuan bi san:
 
-### Bước 1: Chuẩn bị Data (Chạy local)
+```text
+data/training_clean/medgemma_4b/train.jsonl
+data/training_clean/medgemma_4b/eval.jsonl
+```
+
+Neu can build lai:
 
 ```bash
-cd packages/ai_training
-
-# Download MedQuAD từ HuggingFace + Vietnamese data
-python scripts/01_prepare_data.py --source all --lang en --model qwen_72b
-
-# Hoặc chỉ Vietnamese data (nhanh hơn)
-python scripts/01_prepare_data.py --source sample --model qwen_72b
+python scripts/prepare_medgemma_data.py
+python scripts/format_medgemma_dataset.py
 ```
 
-**Kết quả:**
-- `data/training_clean/qwen_72b/train.json`
-- `data/training_clean/qwen_72b/eval.json`
-
-### Bước 2: Train Qwen 72B (Cần Server A100)
+### Buoc 2: Cai dependencies
 
 ```bash
-# Chạy training script
-python scripts/02_train_qwen.py
+pip install -r scripts/requirements_train.txt
+huggingface-cli login
 ```
 
-**Yêu cầu:**
-- GPU: A100 80GB
-- Time: 8-12 giờ
-- Có thể thuê trên Vast.ai (~$1/giờ)
+`google/medgemma-4b-it` la gated model, can chap nhan dieu khoan tren Hugging Face truoc khi train.
 
-### Bước 3: Evaluate
+### Buoc 3: Smoke test
 
 ```bash
-python scripts/05_evaluate.py --model ./output/medisign_qwen/adapter
+python scripts/train_qlora_medgemma_smoke_test.py
 ```
 
----
-
-## 📁 Cấu Trúc Files
-
-```
-packages/ai_training/
-├── scripts/
-│   ├── 01_prepare_data.py    # Chuẩn bị data
-│   ├── 02_train_gemma.py     # Train Gemma 2B (mobile)
-│   ├── 02_train_qwen.py      # Train Qwen 72B (server)
-│   ├── 03_inference.py       # Test inference
-│   └── 05_evaluate.py       # Đánh giá accuracy
-├── output/
-│   └── eval_results/         # Kết quả đánh giá
-└── medical_adapter/
-    └── README.md
-
-data/
-├── training_raw/
-│   ├── medquad/              # MedQuAD (sẽ tự download)
-│   ├── vietnamese_medical/   # Vietnamese Q&A
-│   └── symptom_disease/     # Symptom-Disease mapping
-└── training_clean/
-    ├── qwen_72b/
-    │   ├── train.json
-    │   └── eval.json
-    └── gemma_2b/
-        ├── train.json
-        └── eval.json
-```
-
----
-
-## 🔧 Chi Tiết Từng Bước
-
-### Bước 1: Chuẩn bị Data
+### Buoc 4: Train adapter
 
 ```bash
-# Tải tất cả data (MedQuAD + ChatDoctor + Vietnamese)
-python scripts/01_prepare_data.py --source all --lang en --model qwen_72b
-
-# Args:
-# --source: medquad | chatdoctor | all | sample
-# --lang: en | vi
-# --model: qwen_72b | gemma_2b
-# --eval_ratio: 0.1 (10% cho eval)
+python scripts/train_qlora_medgemma.py
 ```
 
-### Bước 2: Train
+Output:
 
-**Option A: Train Qwen 72B (Server A100)**
-
-```bash
-python scripts/02_train_qwen.py
+```text
+output/medisign_medgemma4b/checkpoints/
+output/medisign_medgemma4b/adapter/
 ```
 
-**Option B: Train Gemma 2B (Google Colab)**
+## Cau truc lien quan
 
-1. Upload `02_train_gemma.py` lên Colab
-2. Upload data từ Bước 1
-3. Chạy cells
-4. Download adapter
+```text
+scripts/
+├── prepare_medgemma_data.py
+├── format_medgemma_dataset.py
+├── train_qlora_medgemma.py
+├── train_qlora_medgemma_smoke_test.py
+└── requirements_train.txt
 
-### Bước 3: Evaluate
-
-```bash
-# Đánh giá accuracy trên MedQuAD
-python scripts/05_evaluate.py \
-    --base_model Qwen/Qwen2.5-72B-Instruct \
-    --model ./output/medisign_qwen/adapter \
-    --max_samples 1000
+data/training_clean/medgemma_4b/
+├── merged_dataset.json
+├── train.jsonl
+├── eval.jsonl
+├── merge_stats.json
+└── format_stats.json
 ```
 
----
+## Cau hinh mac dinh
 
-## 📊 Evaluation Metrics
+| Setting | Value |
+| --- | --- |
+| Base model | `google/medgemma-4b-it` |
+| Max sequence length | 2048 |
+| LoRA rank | 32 |
+| LoRA alpha | 64 |
+| LoRA dropout | 0.1 |
+| Quantization | 4-bit NF4 |
+| Epochs | 3 |
+| Train/eval split | 90/10 |
 
-| Metric | Mô tả | Target |
-|--------|-------|--------|
-| **Exact Match** | % câu trả lời khớp chính xác | ≥80% |
-| **Token Accuracy** | % từ khớp | ≥85% |
-| **ROUGE-L** | Similarity score | ≥0.75 |
-| **BLEU** | Text quality | ≥0.5 |
+## Evaluation
 
----
+Repo hien co script evaluation legacy trong `packages/ai_training/scripts/05_evaluate.py`, nhung bo eval co dinh cho MediSign van can duoc bo sung trong `data/eval_sets`.
 
-## 🎓 Tips Để Đạt Điểm Cao
+Danh gia nen gom:
 
-1. **Nhiều data hơn** - Ưu tiên MedQuAD đầy đủ (47K samples)
-2. **Dịch sang tiếng Việt** - Dùng Gemini API để dịch
-3. **RAG** - Thêm knowledge base để grounding
-4. **Logic Layer** - Thêm symptom-disease mapping
+- Vietnamese medical QA
+- Safety disclaimer
+- Red-flag triage
+- Drug lookup and interaction cases
+- Refusal/escalation behavior for dangerous advice
 
----
+## Luu y
 
-## ❓ FAQ
-
-**Q: Không có A100 làm sao?**
-A: Dùng Qwen 7B thay 72B, hoặc thuê Vast.ai (~$1/giờ)
-
-**Q: Data ít có sao không?**
-A: 1000+ samples đã đủ cho baseline, càng nhiều càng tốt
-
-**Q: Train bao lâu?**
-A: Qwen 72B: 8-12 giờ, Qwen 7B: 2-4 giờ
-
-**Q: Làm sao biết model tốt?**
-A: Chạy `05_evaluate.py` để đo accuracy
-
----
-
-## 📞 Support
-
-- Xem chi tiết: `packages/ai_training/README.md`
-- Code: `packages/ai_training/scripts/`
-- Documentation: `docs/Required.md` (Phần 17)
-
----
-
-## ⚠️ Lưu Ý Quan Trọng
-
-1. **AI chỉ HỖ TRỢ** - Không thay thế bác sĩ
-2. **Luôn có disclaimer** - Trong mọi response
-3. **Red flags** - Khuyến khích khám bác sĩ ngay
-4. **Đây là QA accuracy** - Không phải clinical diagnosis
+1. AI chi ho tro, khong thay the bac si.
+2. Moi response y te can co disclaimer.
+3. Red flags can uu tien safety/logic layer, khong chi dua vao model.

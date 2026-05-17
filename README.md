@@ -1,188 +1,148 @@
-# MediSign AI - Dự án Y Tế Thông Minh
+# MediSign AI - Du an y te thong minh
 
-## Tổng quan
+MediSign AI la ung dung y te thong minh ho tro:
 
-MediSign AI là ứng dụng y tế thông minh sử dụng AI để hỗ trợ:
-- Chẩn đoán bệnh (gợi ý)
-- Nhận diện thuốc từ ảnh
-- Tương tác thuốc
-- Tư vấn sức khỏe
+- Goi y trieu chung va muc do can chu y
+- Tra cuu thong tin thuoc
+- Quan ly tu thuoc ca nhan
+- Tu van suc khoe bang tieng Viet
+
+> Luu y: AI chi dua ra goi y so bo, khong thay the chan doan hoac chi dinh cua bac si.
 
 ## Model AI
 
-### Qwen2.5-VL-72B
+### MedGemma 4B
 
-Model chính: **Qwen2.5-VL-72B** (Vision-Language)
+Model train hien tai: `google/medgemma-4b-it`
 
-**Điểm mạnh:**
-- Đọc ảnh thuốc → Extract tên thuốc
-- Xử lý text tiếng Việt tốt
-- Self-hosted (không phụ thuộc API bên ngoài)
-- 4-bit quantization (~40GB VRAM)
+Du an khong train lai full model. Pipeline hien tai train **QLoRA medical adapter** cho MediSign AI.
 
-### Luồng xử lý
+| Thanh phan | Gia tri |
+| --- | --- |
+| Base model | `google/medgemma-4b-it` |
+| Phuong phap | QLoRA |
+| Train file | `data/training_clean/medgemma_4b/train.jsonl` |
+| Eval file | `data/training_clean/medgemma_4b/eval.jsonl` |
+| Adapter output | `output/medisign_medgemma4b/adapter/` |
+
+Tai lieu train chi tiet: `docs/training/QLORA_TRAINING.md`.
+
+## Luong xu ly thuoc
 
 ```
-1. User gửi ảnh thuốc
-2. Qwen2.5-VL-72B đọc ảnh → Extract tên thuốc
-3. Tìm trong drug_database.json
-4. Trả kết quả về cho user
+1. User nhap text hoac gui anh thuoc
+2. OCR / vision runtime trich xuat ten thuoc
+3. Backend tim trong drug database
+4. Tra thong tin thuoc va canh bao phu hop
 ```
+
+Module hien tai uu tien lookup database. Neu can nhan dien thuoc truc tiep tu anh bang vision classifier, can bo sung dataset anh thuoc that.
 
 ## Drug Database
 
-### Vị trí
+Backend uu tien cac file database lon neu ton tai, fallback ve file nho cu.
+
+Duong dan uu tien trong `apps/backend_fastapi/app/services/drug_lookup_service.py`:
+
+1. `data/training_clean/drug_database_dav_detailed_10k.json`
+2. `data/training_clean/drug_database_10k_full.json`
+3. `data/training_clean/drug_database_10k.json`
+4. `data/training_clean/drug_database_expanded.json`
+5. `data/training_clean/drug_database.json`
+
+File tot nhat hien co:
+
+- `drug_database_dav_detailed_10k.json`
+- 22,585 records
+- 15,884 ten thuoc unique
+- 22,237 records co so dang ky
+- 10,574 records co hoat chat
+
+## Training Data
+
+### MedGemma 4B
+
 ```
-data/training_clean/drug_database.json
+data/training_clean/medgemma_4b/
+├── merged_dataset.json  (17,196 records sau dedup)
+├── train.jsonl          (15,476 records)
+├── eval.jsonl           (1,720 records)
+├── merge_stats.json
+└── format_stats.json
 ```
 
-### Format
+Format JSONL:
+
 ```json
-[
-  {
-    "name": "Paracetamol",
-    "description": "Paracetamol là thuốc giảm đau, hạ sốt...",
-    "source": "wikipedia"
-  },
-  ...
-]
+{
+  "text": "<start_of_turn>user\n...<end_of_turn>\n<start_of_turn>model\n...<end_of_turn>",
+  "instruction": "Bạn là MediSign AI...",
+  "input": "Câu hỏi của người dùng",
+  "output": "Câu trả lời y tế có disclaimer",
+  "source": "all_medical"
+}
 ```
 
-### Số lượng
-- **242 thuốc** trong database
+Nguon du lieu chinh trong corpus MedGemma:
+
+- `all_medical`: 12,391
+- `medquad`: 1,362
+- `drug_db`: 968
+- `medical_dialogue_2010`: 800
+- `vn_drugs_commercial`: 576
+- Cac nguon synthetic / VN symptoms / drug medicine khac
 
 ## API Endpoints
 
 ### Drug Lookup
 
 | Method | Endpoint | Description |
-|--------|----------|-------------|
+| --- | --- | --- |
 | GET | `/api/drug/` | Health check |
 | GET | `/api/drug/list` | List all drugs |
 | POST | `/api/drug/search` | Search drug by name |
-| GET | `/api/drug/search/{name}` | Search drug (GET) |
+| GET | `/api/drug/search/{name}` | Search drug |
 | GET | `/api/drug/suggestions/{keyword}` | Get suggestions |
 | GET | `/api/drug/random/{count}` | Random drugs |
 
-### Ví dụ
+### Core Backend
 
-```bash
-# Search drug
-curl -X POST "http://localhost:8000/api/drug/search" \
-     -H "Content-Type: application/json" \
-     -d '{"drug_name": "Paracetamol"}'
-
-# Response
-{
-  "status": "found",
-  "drug": {
-    "name": "Paracetamol",
-    "description": "Paracetamol là thuốc giảm đau, hạ sốt...",
-    "source": "wikipedia"
-  }
-}
-
-# Get suggestions
-curl "http://localhost:8000/api/drug/suggestions/Para?limit=5"
-```
-
-## Training Data
-
-### Vị trí
-```
-data/training_clean/qwen_72b/
-├── train.json  (16,888 records)
-└── eval.json   (1,876 records)
-```
-
-### Format
-```json
-[
-  {
-    "instruction": "Bạn là MediSign AI - trợ lý y tế thông minh...",
-    "input": "Thuốc Paracetamol có tác dụng gì?",
-    "output": "Paracetamol có tác dụng hạ sốt, giảm đau...",
-    "source": "all_medical"
-  },
-  ...
-]
-```
-
-### Nguồn dữ liệu
-- all_medical: 12,396
-- medquad: 2,829
-- drug_db: 852
-- synthetic_v2: 223
-- vn_drugs: 215
-- drug_medicine: 170
-- synthetic: 108
-- drug_synthetic: 90
-- Total: **18,764 records**
-
-## Services
-
-### Drug Lookup Service
-```python
-from app.services.drug_lookup_service import get_drug_info
-
-# Tìm thuốc
-result = get_drug_info("Paracetamol")
-
-# Result
-{
-    "status": "found",
-    "drug": {
-        "name": "Paracetamol",
-        "description": "..."
-    }
-}
-```
-
-## Files quan trọng
-
-| File | Description |
-|------|-------------|
-| `data/training_clean/drug_database.json` | Drug database (242 drugs) |
-| `data/training_clean/qwen_72b/train.json` | Training data |
-| `docs/Qwen2.5-VL-Architecture.md` | Model architecture |
-| `docs/DRUG_RECOGNITION_FLOW.md` | Drug recognition flow |
-| `apps/backend_fastapi/app/services/drug_lookup_service.py` | Drug lookup service |
-| `apps/backend_fastapi/app/routers/drug_router.py` | Drug API endpoints |
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| GET | `/api/v1/health` | Health check |
+| POST | `/api/v1/consult/triage` | Rule-based/AI triage |
+| POST | `/api/v1/medicine/scan` | Medicine scan |
+| POST | `/api/v1/ai/chat` | OpenAI-compatible model runtime client |
 
 ## Quick Start
 
-### 1. Chạy Drug Lookup Service
-```bash
-cd apps/backend_fastapi/app/services
-python drug_lookup_service.py
-```
+### Backend
 
-### 2. Chạy API Server
 ```bash
 cd apps/backend_fastapi
 uvicorn app.main:app --reload
 ```
 
-### 3. Test API
+### Train MedGemma Adapter
+
 ```bash
-curl http://localhost:8000/api/drug/search/Paracetamol
+pip install -r scripts/requirements_train.txt
+huggingface-cli login
+python scripts/train_qlora_medgemma_smoke_test.py
+python scripts/train_qlora_medgemma.py
 ```
 
 ## Structure
 
 - `apps/mobile_flutter`: Flutter client
+- `apps/web_next`: Next.js web client
 - `apps/backend_fastapi`: FastAPI backend
 - `packages/shared_contracts`: OpenAPI + JSON Schema contracts
-- `data/training_clean/`: Training data & drug database
+- `data/training_clean`: Cleaned training data and drug database
+- `docs/training`: Training documentation
 
 ## Disclaimer
 
-⚠️ **Lưu ý quan trọng:**
-- AI chỉ đưa ra **gợi ý**, không thay thế chẩn đoán của bác sĩ
-- Luôn tham khảo ý kiến bác sĩ trước khi sử dụng thuốc
-- Không tự ý sử dụng thuốc dựa trên thông tin từ AI
-
----
-
-**Updated:** 2026-03-15
-**Version:** 1.0.0
+- AI chi dua ra goi y, khong thay the chan doan cua bac si.
+- Luon tham khao bac si/duoc si truoc khi dung thuoc.
+- Neu co dau hieu nang, can lien he co so y te hoac cap cuu.
