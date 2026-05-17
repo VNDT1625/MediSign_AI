@@ -113,6 +113,92 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /ai/status:
+    get:
+      tags: [ai]
+      summary: AI runtime and RAG status
+      responses:
+        '200':
+          description: AI status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIStatusResponse'
+
+  /ai/chat:
+    post:
+      tags: [ai]
+      summary: Chat with trained model and optional RAG context
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AIChatRequest'
+      responses:
+        '200':
+          description: AI response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIChatResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /ai/rag/status:
+    get:
+      tags: [ai]
+      summary: RAG index status
+      responses:
+        '200':
+          description: RAG status
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /ai/rag/rebuild:
+    post:
+      tags: [ai]
+      summary: Rebuild RAG index from configured knowledge base
+      responses:
+        '200':
+          description: Rebuild result
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  /ai/rag/search:
+    post:
+      tags: [ai]
+      summary: Search MediSign knowledge base
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RAGSearchRequest'
+      responses:
+        '200':
+          description: RAG search result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RAGSearchResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     HealthResponse:
@@ -214,6 +300,123 @@ components:
         token_type:
           type: string
           example: bearer
+
+    RAGSource:
+      type: object
+      required: [record_id, type, title, score, confidence, needs_medical_review, source]
+      properties:
+        record_id:
+          type: string
+        type:
+          type: string
+        title:
+          type: string
+        score:
+          type: number
+        confidence:
+          type: string
+        needs_medical_review:
+          type: boolean
+        source:
+          type: object
+          additionalProperties: true
+
+    RAGSearchRequest:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        adapter:
+          type: string
+          default: medical
+        top_k:
+          type: integer
+          minimum: 1
+          maximum: 20
+          default: 5
+
+    RAGSearchResponse:
+      type: object
+      required: [query, hits, context]
+      properties:
+        query:
+          type: string
+        hits:
+          type: array
+          items:
+            $ref: '#/components/schemas/RAGSource'
+        context:
+          type: string
+
+    AIChatRequest:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        system_prompt:
+          type: string
+          nullable: true
+        adapter:
+          type: string
+          default: medical
+        use_rag:
+          type: boolean
+          default: true
+        rag_top_k:
+          type: integer
+          minimum: 1
+          maximum: 20
+          default: 5
+
+    AIChatResponse:
+      type: object
+      required: [provider, model, adapter, content, fallback_used, rag_used, sources]
+      properties:
+        provider:
+          type: string
+        model:
+          type: string
+        adapter:
+          type: string
+        content:
+          type: string
+        fallback_used:
+          type: boolean
+        rag_used:
+          type: boolean
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/RAGSource'
+
+    AIStatusResponse:
+      type: object
+      required:
+        [provider, model, base_url, medical_adapter_path, psychology_adapter_path, ready, detail, rag]
+      properties:
+        provider:
+          type: string
+        model:
+          type: string
+        base_url:
+          type: string
+        medical_adapter_path:
+          type: string
+        psychology_adapter_path:
+          type: string
+        ready:
+          type: boolean
+        detail:
+          type: string
+        rag:
+          type: object
+          additionalProperties: true
 
     ErrorResponse:
       type: object

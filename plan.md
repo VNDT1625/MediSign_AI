@@ -36,7 +36,7 @@ Current counts after full DAV crawl and rebuild:
 - Vietnam common diseases: 10 records
 - Public guideline/document chunks: 356 records
 - Structured output training samples: 67 records
-- Demo eval samples: 67 records
+- Demo/safety eval samples: 427 records
 - MedGemma merged dataset: 17,263 records
 - MedGemma train/eval: 15,536 / 1,727 records
 
@@ -48,6 +48,13 @@ Public harvest notes:
 - openFDA/DailyMed interaction data is broad public label text, not clean severity/mechanism interaction pairs.
 - KCB/BYT/NIN guideline data is a public snapshot from reachable official pages, linked PDFs, and the Vietnam RDA PDF available during harvest.
 - This is now enough for RAG/RAG-lite indexing, but still needs medical review before production use.
+
+Safety eval expansion:
+
+- `data/eval_sets/demo_safety_eval.jsonl` now has 427 cases.
+- The expansion adds 360 deterministic safety cases from 12 user profiles and 30 scenarios.
+- Covered risk groups include infants, children, pregnancy, lactation, older adults, kidney/liver disease, drug allergy, anticoagulant use, and polypharmacy.
+- Covered scenario groups include emergency red flags, self-harm, overdose, severe infection, pregnancy danger signs, medication interactions, allergy, and low-risk self-care cases.
 
 Verification completed:
 
