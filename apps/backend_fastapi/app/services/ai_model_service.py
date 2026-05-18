@@ -114,7 +114,7 @@ class AIModelService:
             return self._fallback_response(payload, rag_hits)
 
         if self._is_bad_model_response(content):
-            return self._fallback_response(payload, rag_hits)
+            return self._safe_clarifying_response(payload)
         content = self._clean_model_content(content)
 
         return AIChatResponse(
@@ -181,6 +181,33 @@ class AIModelService:
             fallback_used=True,
             rag_used=bool(rag_hits),
             sources=self._rag_sources(rag_hits),
+        )
+
+    def _safe_clarifying_response(self, payload: AIChatRequest) -> AIChatResponse:
+        if payload.adapter == "psychology":
+            content = (
+                "Mình đã ghi nhận chia sẻ của bạn. Bạn có thể nói rõ hơn cảm xúc chính, "
+                "mức độ ảnh hưởng tới ngủ/ăn/làm việc và điều gì làm bạn thấy nặng hơn không? "
+                "Nếu có ý nghĩ tự hại hoặc mất an toàn, hãy liên hệ người thân hoặc cấp cứu ngay."
+            )
+        else:
+            content = (
+                "Mình chưa thể kết luận nguyên nhân chỉ từ mô tả này. Các triệu chứng như đau bụng, "
+                "đi tiểu nhiều hoặc đi ngoài phân lỏng có thể liên quan tiêu hóa, tiết niệu, ăn uống, "
+                "nhiễm khuẩn hoặc vấn đề chuyển hóa. Bạn cho mình biết thêm: tuổi, giới tính, triệu chứng "
+                "bắt đầu từ khi nào, số lần đi ngoài/đi tiểu mỗi ngày, có sốt/nôn/đau khi tiểu/khát nhiều "
+                "không, và thuốc đang dùng. Nếu đau bụng dữ dội, sốt cao, mất nước, đi ngoài ra máu, "
+                "lơ mơ hoặc tiểu buốt kèm sốt, hãy đi khám sớm."
+            )
+
+        return AIChatResponse(
+            provider=settings.ai_provider,
+            model=settings.ai_model,
+            adapter=payload.adapter,
+            content=content,
+            fallback_used=True,
+            rag_used=False,
+            sources=[],
         )
 
     def _compose_system_prompt(self, payload: AIChatRequest, rag_hits: list[RAGHit]) -> str:
@@ -373,6 +400,10 @@ class AIModelService:
         bad_markers = (
             "dich sang tieng anh",
             "dich sang tieng viet",
+            "dich cau hoi sang tieng anh",
+            "dich cau hoi sang tieng viet",
+            "ban dich tieng anh",
+            "ban dich tieng viet",
             "translate to english",
             "translate to vietnamese",
         )
