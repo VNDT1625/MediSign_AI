@@ -12,6 +12,19 @@ Flutter app -> FastAPI -> MedGemma runtime server -> base model + LoRA adapter
 This keeps the API process lightweight and lets the model server restart,
 scale, or move to another GPU machine without changing app code.
 
+For production-like development, the MedGemma runtime can run on FPT Cloud GPU
+while FastAPI/RAG and the web app run locally:
+
+```text
+Local web -> local FastAPI/RAG -> FPT Cloud MedGemma server
+```
+
+Use:
+
+```powershell
+scripts\dev\start-all-dev-cloud.ps1 http://FPT_VM_IP:8080/v1
+```
+
 ## Adapter outputs expected by the backend
 
 Medical adapter:

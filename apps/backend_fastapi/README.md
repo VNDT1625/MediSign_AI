@@ -10,7 +10,7 @@ Backend hien tai giu FastAPI nhe va goi model runtime rieng qua endpoint OpenAI-
 | Medical AI | MedGemma 1.5 4B server | Medical LoRA | Adapter downloaded and wired |
 | Psychology AI | MedGemma-compatible server | Psychology/Personal LoRA | Planned |
 
-Set these in `.env`:
+Set these in `.env` for local model server:
 
 ```bash
 AI_PROVIDER=openai_compatible
@@ -19,6 +19,19 @@ AI_API_KEY=
 AI_MODEL=google/medgemma-1.5-4b-it
 AI_MEDICAL_MODEL=medisign-medgemma-medical
 AI_PSYCHOLOGY_MODEL=medisign-medgemma4b-psychology
+```
+
+For FPT Cloud GPU, keep backend and web on your local machine and point the
+backend to the cloud model endpoint:
+
+```powershell
+scripts\dev\start-backend-rag-cloud.ps1 http://FPT_VM_IP:8080/v1
+```
+
+To start local backend and web together with the cloud AI server:
+
+```powershell
+scripts\dev\start-all-dev-cloud.ps1 http://FPT_VM_IP:8080/v1
 ```
 
 Neu khong cau hinh model runtime, service van chay bang rule-based/mock fallback.
@@ -57,6 +70,8 @@ For local web + backend + real model together:
 ```powershell
 scripts\dev\start-all-dev.ps1
 ```
+
+For FPT Cloud deployment steps, see `docs/FPT_CLOUD_DEPLOY.md`.
 
 The model server uses:
 
