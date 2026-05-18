@@ -49,6 +49,8 @@ cd "$APP_DIR"
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install --upgrade pip
+python -m pip uninstall -y torch torchvision torchaudio >/dev/null 2>&1 || true
+python -m pip install --index-url https://download.pytorch.org/whl/cu124 torch
 python -m pip install -r scripts/requirements_medgemma_server.txt
 
 python - <<'PY'

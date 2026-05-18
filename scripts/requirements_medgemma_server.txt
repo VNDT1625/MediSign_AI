@@ -2,7 +2,6 @@
 # This is intentionally smaller than requirements_train.txt so a paid cloud VM
 # reaches the first test faster.
 
-torch>=2.4
 transformers>=4.50
 peft>=0.13
 bitsandbytes>=0.44

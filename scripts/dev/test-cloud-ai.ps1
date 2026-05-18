@@ -57,11 +57,12 @@ $body = @{
 
 Write-Host "Running chat smoke test: $cloudBaseUrl/chat/completions"
 try {
+  $bodyBytes = [System.Text.Encoding]::UTF8.GetBytes($body)
   $response = Invoke-RestMethod `
     -Uri "$cloudBaseUrl/chat/completions" `
     -Method Post `
-    -ContentType "application/json" `
-    -Body $body `
+    -ContentType "application/json; charset=utf-8" `
+    -Body $bodyBytes `
     -TimeoutSec 180
 } catch {
   throw "Cloud chat smoke test failed. Check FPT server terminal for model/load errors. Detail: $($_.Exception.Message)"

@@ -69,6 +69,22 @@ cd "C:\NDT\PJ\MediSign_AI - Copy"
 .\scripts\dev\test-cloud-ai.ps1 http://FPT_VM_IP:8080/v1
 ```
 
+If setup prints `CUDA available: False` even though `nvidia-smi` shows a GPU,
+the VM installed a CPU PyTorch wheel. Fix it inside the VM:
+
+```bash
+cd ~/MediSign_AI
+. .venv/bin/activate
+python -m pip uninstall -y torch torchvision torchaudio
+python -m pip install --index-url https://download.pytorch.org/whl/cu124 torch
+python - <<'PY'
+import torch
+print(torch.__version__)
+print(torch.cuda.is_available())
+print(torch.cuda.get_device_name(0))
+PY
+```
+
 ## 4. Start local backend + web using cloud AI
 
 On Windows:
