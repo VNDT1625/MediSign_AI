@@ -194,14 +194,7 @@ class AIModelService:
                 "Nếu có ý nghĩ tự hại hoặc mất an toàn, hãy liên hệ người thân hoặc cấp cứu ngay."
             )
         else:
-            content = (
-                "Mình chưa thể kết luận nguyên nhân chỉ từ mô tả này. Các triệu chứng như đau bụng, "
-                "đi tiểu nhiều hoặc đi ngoài phân lỏng có thể liên quan tiêu hóa, tiết niệu, ăn uống, "
-                "nhiễm khuẩn hoặc vấn đề chuyển hóa. Bạn cho mình biết thêm: tuổi, giới tính, triệu chứng "
-                "bắt đầu từ khi nào, số lần đi ngoài/đi tiểu mỗi ngày, có sốt/nôn/đau khi tiểu/khát nhiều "
-                "không, và thuốc đang dùng. Nếu đau bụng dữ dội, sốt cao, mất nước, đi ngoài ra máu, "
-                "lơ mơ hoặc tiểu buốt kèm sốt, hãy đi khám sớm."
-            )
+            content = self._safe_medical_clarifying_content(payload.message)
 
         return AIChatResponse(
             provider=settings.ai_provider,
@@ -211,6 +204,48 @@ class AIModelService:
             fallback_used=True,
             rag_used=False,
             sources=[],
+        )
+
+    def _safe_medical_clarifying_content(self, message: str) -> str:
+        normalized = f" {self._normalize_text(message)} "
+
+        if any(term in normalized for term in (" dau hong ", " viem hong ", " ho ", " nuot vuong ")):
+            return (
+                "Mình chưa thể kết luận chắc chắn chỉ từ mô tả này. Đau họng, ho khan hoặc nuốt vướng "
+                "thường gặp trong viêm họng do virus, cảm cúm, kích ứng họng hoặc viêm amidan. Bạn nên "
+                "nghỉ ngơi, uống nước ấm, súc họng nước muối sinh lý và theo dõi 1-2 ngày. Cho mình biết "
+                "thêm: bạn bao nhiêu tuổi, có sốt bao nhiêu độ, ho có đờm không, đau một bên họng không, "
+                "có khó thở hoặc khó nuốt nước bọt không, và đã dùng thuốc gì chưa. Nếu khó thở, sốt cao "
+                "kéo dài, đau họng tăng nhanh, không nuốt được nước bọt hoặc đau lệch một bên cổ, hãy đi khám sớm."
+            )
+
+        if any(
+            term in normalized
+            for term in (" dau bung ", " di tieu ", " tieu chay ", " phan long ", " phan nhao ")
+        ):
+            return (
+                "Mình chưa thể kết luận nguyên nhân chỉ từ mô tả này. Các triệu chứng như đau bụng, "
+                "đi tiểu nhiều hoặc đi ngoài phân lỏng có thể liên quan tiêu hóa, tiết niệu, ăn uống, "
+                "nhiễm khuẩn hoặc vấn đề chuyển hóa. Bạn cho mình biết thêm: tuổi, giới tính, triệu chứng "
+                "bắt đầu từ khi nào, số lần đi ngoài/đi tiểu mỗi ngày, có sốt/nôn/đau khi tiểu/khát nhiều "
+                "không, và thuốc đang dùng. Nếu đau bụng dữ dội, sốt cao, mất nước, đi ngoài ra máu, "
+                "lơ mơ hoặc tiểu buốt kèm sốt, hãy đi khám sớm."
+            )
+
+        if any(term in normalized for term in (" dau dau ", " nhuc dau ", " chong mat ", " nong ")):
+            return (
+                "Mình chưa thể kết luận chắc chắn chỉ từ mô tả này. Nhức đầu hoặc cảm giác nóng có thể liên quan "
+                "thiếu ngủ, căng thẳng, mất nước, sốt, viêm xoang, say nắng hoặc huyết áp. Bạn nên đo nhiệt độ, "
+                "uống nước, nghỉ ngơi nơi thoáng mát và theo dõi. Cho mình biết thêm: đau từ khi nào, đau vùng nào, "
+                "có sốt/ói/chóng mặt/cứng gáy/yếu tay chân hoặc nhìn mờ không. Nếu đau đầu dữ dội đột ngột, lơ mơ, "
+                "yếu liệt, cứng gáy, sốt cao hoặc nôn nhiều, hãy đi khám/cấp cứu ngay."
+            )
+
+        return (
+            "Mình chưa thể kết luận nguyên nhân chỉ từ mô tả này. Bạn cho mình biết thêm: tuổi, giới tính, "
+            "triệu chứng bắt đầu từ khi nào, mức độ nặng, có sốt/đau/khó thở/nôn/tiêu chảy/phát ban không, "
+            "thuốc đang dùng, bệnh nền và dị ứng thuốc. Nếu có khó thở, đau ngực, lơ mơ, yếu liệt, sốt cao, "
+            "mất nước, chảy máu hoặc triệu chứng tăng nhanh, hãy đi khám/cấp cứu ngay."
         )
 
     def _compose_system_prompt(self, payload: AIChatRequest, rag_hits: list[RAGHit]) -> str:
