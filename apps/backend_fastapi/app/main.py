@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request
@@ -32,6 +33,11 @@ async def startup_event():
     from app.database import cloud_models, local_models
     # Create all tables
     Base.metadata.create_all(bind=engine)
+
+    if os.getenv("BACKEND_RAG_PRELOAD", "").lower() in {"1", "true", "yes"}:
+        from app.services.rag_service import rag_service
+
+        rag_service.status()
 
 
 app.include_router(api_router, prefix=settings.api_prefix)

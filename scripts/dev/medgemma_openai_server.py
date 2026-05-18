@@ -37,7 +37,7 @@ class ModelRuntime:
         )
         self.load_in_4bit = os.getenv("MEDISIGN_LOAD_IN_4BIT", "1") != "0"
         self.max_input_tokens = int(os.getenv("MEDISIGN_MAX_INPUT_TOKENS", "4096"))
-        self.processor: Any | None = None
+        self.tokenizer: Any | None = None
         self.model: Any | None = None
         self.loaded_at: float | None = None
 
@@ -59,11 +59,13 @@ class ModelRuntime:
             return
         if not self.adapter_path.exists():
             raise RuntimeError(f"Adapter path not found: {self.adapter_path}")
+        if self.load_in_4bit and not torch.cuda.is_available():
+            raise RuntimeError("MEDISIGN_LOAD_IN_4BIT=1 requires a CUDA GPU")
 
         self._patch_gemma3_token_type_ids()
 
         from peft import PeftModel
-        from transformers import AutoModelForImageTextToText, AutoProcessor, BitsAndBytesConfig
+        from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
         quantization_config = None
         if self.load_in_4bit:
@@ -74,14 +76,17 @@ class ModelRuntime:
                 bnb_4bit_use_double_quant=True,
             )
 
-        self.processor = AutoProcessor.from_pretrained(self.base_model)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.base_model, use_fast=True)
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
         self._load_adapter_chat_template()
 
-        model = AutoModelForImageTextToText.from_pretrained(
+        model = AutoModelForCausalLM.from_pretrained(
             self.base_model,
             device_map="auto",
             torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
             quantization_config=quantization_config,
+            attn_implementation="eager",
         )
         self.model = PeftModel.from_pretrained(model, str(self.adapter_path))
         self.model.eval()
@@ -89,18 +94,19 @@ class ModelRuntime:
 
     def generate(self, request: ChatCompletionRequest) -> str:
         self.load()
-        assert self.processor is not None
+        assert self.tokenizer is not None
         assert self.model is not None
 
         prompt = self._build_prompt(request.messages)
-        inputs = self.processor(
+        inputs = self.tokenizer(
             text=prompt,
             return_tensors="pt",
             truncation=True,
             max_length=self.max_input_tokens,
         )
+        input_device = self._input_device()
         inputs = {
-            key: value.to(self.model.device) if hasattr(value, "to") else value
+            key: value.to(input_device) if hasattr(value, "to") else value
             for key, value in inputs.items()
         }
 
@@ -112,12 +118,12 @@ class ModelRuntime:
                 temperature=max(request.temperature, 0.01),
                 top_p=request.top_p,
                 repetition_penalty=1.05,
-                pad_token_id=self.processor.tokenizer.eos_token_id,
+                pad_token_id=self.tokenizer.eos_token_id,
             )
 
         input_len = inputs["input_ids"].shape[-1]
         generated_ids = output_ids[0][input_len:]
-        text = self.processor.tokenizer.decode(generated_ids, skip_special_tokens=True)
+        text = self.tokenizer.decode(generated_ids, skip_special_tokens=True)
         return text.strip()
 
     def _build_prompt(self, messages: list[ChatMessage]) -> str:
@@ -140,8 +146,9 @@ class ModelRuntime:
             if part
         )
 
-        chat = [{"role": "user", "content": [{"type": "text", "text": merged_user}]}]
-        return self.processor.apply_chat_template(
+        assert self.tokenizer is not None
+        chat = [{"role": "user", "content": merged_user}]
+        return self.tokenizer.apply_chat_template(
             chat,
             add_generation_prompt=True,
             tokenize=False,
@@ -149,17 +156,22 @@ class ModelRuntime:
 
     def _load_adapter_chat_template(self) -> None:
         template_path = self.adapter_path / "chat_template.jinja"
-        if not template_path.exists() or self.processor is None:
+        if not template_path.exists() or self.tokenizer is None:
             return
         template = template_path.read_text(encoding="utf-8")
-        tokenizer = getattr(self.processor, "tokenizer", None)
-        if tokenizer is not None:
-            tokenizer.chat_template = template
+        self.tokenizer.chat_template = template
 
     def _device_name(self) -> str:
         if torch.cuda.is_available():
             return torch.cuda.get_device_name(0)
         return "cpu"
+
+    def _input_device(self) -> torch.device:
+        assert self.model is not None
+        try:
+            return next(self.model.parameters()).device
+        except StopIteration:
+            return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     @staticmethod
     def _patch_gemma3_token_type_ids() -> None:
@@ -250,6 +262,12 @@ app = FastAPI(title="MediSign MedGemma OpenAI-Compatible Server")
 @app.get("/health")
 def health() -> dict[str, Any]:
     return {"status": "ok", **runtime.status()}
+
+
+@app.on_event("startup")
+def preload_on_startup() -> None:
+    if os.getenv("MEDISIGN_PRELOAD_ON_START", "0") == "1":
+        runtime.load()
 
 
 @app.post("/v1/chat/completions")

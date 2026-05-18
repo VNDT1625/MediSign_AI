@@ -13,7 +13,26 @@ if (-not $cloudBaseUrl) {
 }
 
 Start-Process powershell -ArgumentList "-NoExit", "-ExecutionPolicy", "Bypass", "-File", "`"$rootPath\scripts\dev\start-backend-rag-cloud.ps1`"", "`"$cloudBaseUrl`""
-Start-Sleep -Seconds 4
+
+$backendReady = $false
+for ($i = 1; $i -le 90; $i++) {
+  Start-Sleep -Seconds 2
+  try {
+    $status = Invoke-RestMethod -Uri "http://localhost:8000/api/v1/ai/rag/status" -TimeoutSec 2
+    if ($status.ready -eq $true) {
+      $backendReady = $true
+      break
+    }
+  } catch {
+  }
+}
+
+if (-not $backendReady) {
+  throw "Backend was not ready after 180 seconds. Check the backend terminal before opening the web app."
+} else {
+  Write-Host "Backend and RAG are ready."
+}
+
 Start-Process powershell -ArgumentList "-NoExit", "-ExecutionPolicy", "Bypass", "-File", "`"$rootPath\scripts\dev\start-web.ps1`""
 
 Write-Host "Started local dev servers using cloud AI:"

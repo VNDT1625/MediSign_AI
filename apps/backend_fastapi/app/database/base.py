@@ -5,10 +5,13 @@ from typing import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-# Get database URL from environment
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+psycopg://postgres:postgres@localhost:5432/medisign"
+# Get database URL from environment. Dev scripts set both names; supporting
+# BACKEND_DATABASE_URL keeps this module aligned with the pydantic settings
+# prefix used by the rest of the backend.
+DATABASE_URL = (
+    os.getenv("DATABASE_URL")
+    or os.getenv("BACKEND_DATABASE_URL")
+    or "postgresql+psycopg://postgres:postgres@localhost:5432/medisign"
 )
 
 # Create engine

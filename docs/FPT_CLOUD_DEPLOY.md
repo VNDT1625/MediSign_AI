@@ -25,6 +25,7 @@ H100/H200 is more than enough for this adapter.
 SSH into the VM, then run:
 
 ```bash
+export HF_TOKEN='hf_your_token_with_medgemma_access'
 curl -fsSL https://raw.githubusercontent.com/VNDT1625/MediSign_AI/docs/fix-medgemma-model-name/scripts/cloud/setup-fpt-medgemma.sh -o setup-fpt-medgemma.sh
 bash setup-fpt-medgemma.sh
 ```
@@ -49,6 +50,10 @@ Health check:
 curl http://localhost:8080/health
 ```
 
+The server preloads the model on startup. If Hugging Face access, CUDA, LoRA
+loading, or GPU memory is wrong, it fails immediately in this terminal instead
+of failing later from the web app.
+
 From your local Windows machine:
 
 ```powershell
@@ -56,6 +61,13 @@ curl http://FPT_VM_IP:8080/health
 ```
 
 If this does not connect, open port `8080` in the FPT firewall/security group.
+
+Run a direct cloud AI smoke test before starting the web app:
+
+```powershell
+cd "C:\NDT\PJ\MediSign_AI - Copy"
+.\scripts\dev\test-cloud-ai.ps1 http://FPT_VM_IP:8080/v1
+```
 
 ## 4. Start local backend + web using cloud AI
 
@@ -90,4 +102,3 @@ Local machine:
   http://localhost:8000/api/v1/ai/status
   http://localhost:3000/app/chat
 ```
-

@@ -34,6 +34,9 @@ To start local backend and web together with the cloud AI server:
 scripts\dev\start-all-dev-cloud.ps1 http://FPT_VM_IP:8080/v1
 ```
 
+The cloud script checks `http://FPT_VM_IP:8080/health` before starting the local
+backend, so a closed firewall/port fails early.
+
 Neu khong cau hinh model runtime, service van chay bang rule-based/mock fallback.
 
 ## Install

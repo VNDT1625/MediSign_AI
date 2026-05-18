@@ -1,0 +1,15 @@
+# Minimal runtime dependencies for the GPU MedGemma server.
+# This is intentionally smaller than requirements_train.txt so a paid cloud VM
+# reaches the first test faster.
+
+torch>=2.4
+transformers>=4.50
+peft>=0.13
+bitsandbytes>=0.44
+accelerate>=0.34
+sentencepiece
+protobuf
+huggingface_hub>=0.26
+fastapi>=0.115.0,<1.0.0
+uvicorn[standard]>=0.30.0,<1.0.0
+pydantic>=2.0.0,<3.0.0
