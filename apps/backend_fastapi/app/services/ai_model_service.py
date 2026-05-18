@@ -13,8 +13,11 @@ from app.services.rag_service import RAGHit, rag_service
 
 
 MEDICAL_SYSTEM_PROMPT = (
-    "Bạn là MediSign AI, trợ lý y tế tiếng Việt. Chỉ đưa gợi ý sơ bộ, "
-    "không chẩn đoán chắc chắn, luôn khuyên gặp bác sĩ khi có dấu hiệu nặng."
+    "Bạn là MediSign AI, trợ lý y tế tiếng Việt. "
+    "QUAN TRỌNG: Luôn trả lời bằng tiếng Việt. "
+    "Tuyệt đối KHÔNG dịch câu hỏi sang tiếng Anh hay ngôn ngữ khác. "
+    "Chỉ đưa gợi ý sơ bộ, không chẩn đoán chắc chắn, "
+    "luôn khuyên gặp bác sĩ khi có dấu hiệu nặng."
 )
 
 PSYCHOLOGY_SYSTEM_PROMPT = (
@@ -406,6 +409,9 @@ class AIModelService:
             "ban dich tieng viet",
             "translate to english",
             "translate to vietnamese",
+            "english translation",
+            "here is the translation",
+            "translated question",
         )
         return any(marker in normalized for marker in bad_markers)
 
