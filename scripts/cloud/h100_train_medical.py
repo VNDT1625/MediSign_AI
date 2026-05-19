@@ -86,14 +86,20 @@ VRAM_GB = torch.cuda.get_device_properties(0).total_memory / 1024**3
 GPU_NAME = torch.cuda.get_device_name(0)
 
 # Auto-tune batch size theo VRAM
-if VRAM_GB >= 70:      # H100 80GB
-    BATCH_SIZE, GRAD_ACCUM = 8, 4
+# Effective batch = BATCH_SIZE * GRAD_ACCUM = 32 (giữ nguyên cho training quality)
+# H100 80GB có thể chứa batch lớn → giảm grad_accum → ít overhead → train nhanh hơn
+if VRAM_GB >= 70:      # H100 80GB — tận dụng tối đa VRAM
+    BATCH_SIZE, GRAD_ACCUM = 32, 1     # effective 32, không gradient_accum
+    GRAD_CHECKPOINT = False             # tắt gradient checkpointing (đủ VRAM)
 elif VRAM_GB >= 40:    # A100 40GB
-    BATCH_SIZE, GRAD_ACCUM = 4, 8
+    BATCH_SIZE, GRAD_ACCUM = 16, 2
+    GRAD_CHECKPOINT = False
 elif VRAM_GB >= 20:    # 4090 / 5070 Ti
     BATCH_SIZE, GRAD_ACCUM = 2, 16
+    GRAD_CHECKPOINT = True
 else:                  # T4 16GB
     BATCH_SIZE, GRAD_ACCUM = 1, 32
+    GRAD_CHECKPOINT = True
 
 USE_BF16 = torch.cuda.is_bf16_supported()
 USE_TF32 = True
@@ -123,6 +129,7 @@ print(f"  BF16           : {USE_BF16}")
 print(f"  Attention      : {ATTN_IMPL}" + (f" (v{FLASH_VER})" if FLASH_VER else ""))
 print(f"  Batch size     : {BATCH_SIZE}")
 print(f"  Grad accum     : {GRAD_ACCUM}  (effective batch = {BATCH_SIZE * GRAD_ACCUM})")
+print(f"  Grad checkpoint: {GRAD_CHECKPOINT}")
 print(f"  LoRA r/alpha   : {LORA_R}/{LORA_ALPHA}")
 print(f"  Epochs         : {NUM_EPOCHS}")
 print(f"  Max seq len    : {MAX_SEQ_LEN}")
@@ -218,8 +225,9 @@ model = AutoModelForCausalLM.from_pretrained(
     token=HF_TOKEN,
 )
 model.config.use_cache = False
-model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=True)
+model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=GRAD_CHECKPOINT)
 print(f"  Model loaded. VRAM used: {torch.cuda.memory_allocated()/1024**3:.2f} GB", flush=True)
+print(f"  Gradient checkpointing: {GRAD_CHECKPOINT}", flush=True)
 
 lora_config = LoraConfig(
     r=LORA_R,
@@ -237,8 +245,8 @@ training_args = SFTConfig(
     per_device_train_batch_size=BATCH_SIZE,
     per_device_eval_batch_size=BATCH_SIZE,
     gradient_accumulation_steps=GRAD_ACCUM,
-    gradient_checkpointing=True,
-    gradient_checkpointing_kwargs={"use_reentrant": False},
+    gradient_checkpointing=GRAD_CHECKPOINT,
+    gradient_checkpointing_kwargs={"use_reentrant": False} if GRAD_CHECKPOINT else None,
     learning_rate=LEARNING_RATE,
     warmup_ratio=0.03,
     lr_scheduler_type="cosine",
