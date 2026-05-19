@@ -86,13 +86,27 @@ if not torch.cuda.is_available():
 VRAM_GB = torch.cuda.get_device_properties(0).total_memory / 1024**3
 GPU_NAME = torch.cuda.get_device_name(0)
 
-# Auto-tune batch size theo VRAM
+USE_BF16 = torch.cuda.is_bf16_supported()
+USE_TF32 = True
+
+# Detect Flash Attention 2 availability FIRST (used in batch tuning below)
+try:
+    import flash_attn  # noqa: F401
+    ATTN_IMPL = "flash_attention_2"
+    FLASH_VER = flash_attn.__version__
+except ImportError:
+    ATTN_IMPL = "sdpa"
+    FLASH_VER = None
+
+# Auto-tune batch size theo VRAM + attention impl
+# SDPA tốn O(n²) memory cho attention → cần batch nhỏ + grad checkpoint + no packing
+# Flash-Attn 2 efficient → batch lớn + packing OK
 if VRAM_GB >= 70:
     if ATTN_IMPL == "flash_attention_2":
         BATCH_SIZE, GRAD_ACCUM = 32, 1
         GRAD_CHECKPOINT = False
         USE_PACKING = True
-    else:  # SDPA fallback — disable packing, reduce batch
+    else:  # SDPA fallback
         BATCH_SIZE, GRAD_ACCUM = 4, 8
         GRAD_CHECKPOINT = True
         USE_PACKING = False
@@ -108,18 +122,6 @@ else:
     BATCH_SIZE, GRAD_ACCUM = 1, 32
     GRAD_CHECKPOINT = True
     USE_PACKING = False
-
-USE_BF16 = torch.cuda.is_bf16_supported()
-USE_TF32 = True
-
-# Detect Flash Attention 2 availability
-try:
-    import flash_attn  # noqa: F401
-    ATTN_IMPL = "flash_attention_2"
-    FLASH_VER = flash_attn.__version__
-except ImportError:
-    ATTN_IMPL = "sdpa"
-    FLASH_VER = None
 
 torch.backends.cuda.matmul.allow_tf32 = USE_TF32
 torch.backends.cudnn.allow_tf32       = USE_TF32

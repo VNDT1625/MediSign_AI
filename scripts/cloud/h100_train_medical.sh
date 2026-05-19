@@ -84,11 +84,34 @@ python3 -m pip install -q \
 
 # Flash Attention 2 — H100 có pre-built wheel, KHÔNG cần compile
 info "Installing Flash Attention 2 (pre-built wheel cho H100)..."
-if python3 -m pip install -q flash-attn --no-build-isolation 2>&1 | tee /tmp/flash_install.log | tail -3; then
-  python3 -c "import flash_attn; print(f'  Flash-Attn version: {flash_attn.__version__}')" 2>/dev/null || warn "flash-attn import failed, will fallback to SDPA"
-  ok "Flash Attention 2 installed"
-else
-  warn "Flash Attention 2 install failed, sẽ dùng SDPA fallback"
+
+# Try pre-built wheel first (much faster than building from source)
+PY_VER_SHORT=$(python3 -c "import sys; print(f'{sys.version_info.major}{sys.version_info.minor}')")
+TORCH_VER=$(python3 -c "import torch; v=torch.__version__.split('+')[0].split('.'); print(f'{v[0]}.{v[1]}')" 2>/dev/null || echo "")
+
+WHEEL_URL=""
+if [ "$PY_VER_SHORT" = "312" ] && [ "$TORCH_VER" = "2.4" ]; then
+  WHEEL_URL="https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.0.post2/flash_attn-2.7.0.post2+cu12torch2.4cxx11abiFALSE-cp312-cp312-linux_x86_64.whl"
+elif [ "$PY_VER_SHORT" = "312" ] && [ "$TORCH_VER" = "2.5" ]; then
+  WHEEL_URL="https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.0.post2/flash_attn-2.7.0.post2+cu12torch2.5cxx11abiFALSE-cp312-cp312-linux_x86_64.whl"
+elif [ "$PY_VER_SHORT" = "311" ] && [ "$TORCH_VER" = "2.4" ]; then
+  WHEEL_URL="https://github.com/Dao-AILab/flash-attention/releases/download/v2.7.0.post2/flash_attn-2.7.0.post2+cu12torch2.4cxx11abiFALSE-cp311-cp311-linux_x86_64.whl"
+fi
+
+FLASH_OK=0
+if [ -n "$WHEEL_URL" ]; then
+  info "Trying pre-built wheel: $WHEEL_URL"
+  if python3 -m pip install -q "$WHEEL_URL" 2>&1 | tail -3; then
+    if python3 -c "import flash_attn; print(f'  Flash-Attn version: {flash_attn.__version__}')" 2>/dev/null; then
+      ok "Flash Attention 2 installed (pre-built)"
+      FLASH_OK=1
+    fi
+  fi
+fi
+
+if [ "$FLASH_OK" -eq 0 ]; then
+  warn "Pre-built wheel không match → fallback SDPA (sẽ chậm hơn ~30%)"
+  warn "Python: $PY_VER_SHORT, PyTorch: $TORCH_VER"
 fi
 
 ok "Dependencies installed"
@@ -139,11 +162,25 @@ fi
 echo ""
 echo "╔════════════════════════════════════════════════════════════════╗"
 echo "║                      🎉 ALL DONE! 🎉                            ║"
-echo "║                                                                ║"
 echo "║  Adapter: https://huggingface.co/thuaannn/medisign-medgemma4b- ║"
-echo "║          adapter                                                ║"
-echo "║                                                                ║"
-echo "║  Bước tiếp theo:                                               ║"
-echo "║  1. Verify trên HuggingFace                                    ║"
-echo "║  2. Destroy VM để dừng tính tiền                               ║"
+echo "║           adapter                                               ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
+
+# ─── Auto-destroy VM (nếu có VAST_API_KEY + INSTANCE_ID) ─────────────
+if [ -n "${VAST_API_KEY:-}" ] && [ -n "${INSTANCE_ID:-}" ]; then
+  banner "AUTO-DESTROY VM"
+  info "Destroying instance $INSTANCE_ID in 30s (Ctrl+C để hủy)..."
+  sleep 30
+  HTTP=$(curl -s -o /tmp/vast_destroy.json -w "%{http_code}" \
+    -X DELETE "https://console.vast.ai/api/v0/instances/${INSTANCE_ID}/" \
+    -H "Authorization: Bearer ${VAST_API_KEY}")
+  if [ "$HTTP" = "200" ]; then
+    ok "Instance $INSTANCE_ID destroyed. Hết tính tiền."
+  else
+    warn "Auto-destroy failed (HTTP $HTTP). Vào Vast.ai tự destroy nhé!"
+    cat /tmp/vast_destroy.json || true
+  fi
+else
+  warn "VAST_API_KEY hoặc INSTANCE_ID chưa set → không tự destroy."
+  warn "Vào https://vast.ai → destroy instance $INSTANCE_ID để dừng tính tiền!"
+fi
