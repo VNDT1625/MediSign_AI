@@ -27,7 +27,7 @@ set -euo pipefail
 
 # ─── Config ──────────────────────────────────────────────────────────
 APP_DIR="${APP_DIR:-$HOME/medisign}"
-PYTHON_SCRIPT_URL="${PYTHON_SCRIPT_URL:-https://raw.githubusercontent.com/VNDT1625/MediSign_AI/main/scripts/cloud/h100_train_medical.py}"
+PYTHON_SCRIPT_URL="${PYTHON_SCRIPT_URL:-https://raw.githubusercontent.com/VNDT1625/MediSign_AI/docs/fix-medgemma-model-name/scripts/cloud/h100_train_medical.py}"
 LOG_FILE="$APP_DIR/training.log"
 
 # ─── Color helpers ───────────────────────────────────────────────────
