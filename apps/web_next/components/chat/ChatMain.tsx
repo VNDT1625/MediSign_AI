@@ -26,6 +26,7 @@ import { recognizeSignVideo, SignRecognitionFailure } from "@/lib/sign/recognize
 import { BodyMap } from "./BodyMap";
 import { intentFromText, type SignIntent } from "./SignAvatar";
 import { VslSignVideoPlayer } from "./VslSignVideoPlayer";
+import { VslRealtimeComposer } from "./VslRealtimeComposer";
 import {
   HistoryIcon,
   MoreIcon,
@@ -455,7 +456,7 @@ function AiAvatar() {
 function Composer({ mode, elderly, isSending, onSend }: { mode: CommMode; elderly: boolean; isSending: boolean; onSend: (m: string) => void }) {
   if (mode === "voice") return <VoiceComposer elderly={elderly} isSending={isSending} onSend={onSend} />;
   if (mode === "click") return <ClickComposer elderly={elderly} isSending={isSending} onSend={onSend} />;
-  if (mode === "sign")  return <SignComposer  elderly={elderly} isSending={isSending} onSend={onSend} />;
+  if (mode === "sign")  return <VslRealtimeComposer elderly={elderly} isSending={isSending} onSend={onSend} />;
   return <TextComposer elderly={elderly} isSending={isSending} onSend={onSend} />;
 }
 
