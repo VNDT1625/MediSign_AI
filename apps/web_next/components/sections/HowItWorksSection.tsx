@@ -95,12 +95,16 @@ const STEPS: Step[] = [
 // Mỗi card "ăn" ~30vh chiều dài scroll — khoảng 1-2 lần lăn chuột là sang card
 // tiếp. Tăng số nếu muốn user cuộn lâu hơn để xem từng card.
 const SCROLL_PER_CARD_VH = 30;
+// Breakpoint pinned scroll chỉ bật từ md (tablet+desktop). Mobile dưới 768px:
+// bỏ pin, render 3 card stack dọc với fade-in tuần tự để người dùng cuộn nhẹ.
+const PIN_MIN_WIDTH = 768;
 
 export function HowItWorksSection() {
   const wrapRef = useRef<HTMLDivElement | null>(null);
   // Số card đã reveal (0..STEPS.length).
   const [revealed, setRevealed] = useState(0);
   const [reduced, setReduced] = useState(false);
+  const [pinEnabled, setPinEnabled] = useState(true);
 
   // Detect prefers-reduced-motion → bỏ pin, hiện cả 3 ngay.
   useEffect(() => {
@@ -112,10 +116,20 @@ export function HowItWorksSection() {
     return () => mq.removeEventListener?.("change", onChange);
   }, []);
 
+  // Detect viewport width — bỏ pin khi mobile để tránh scroll dài lê thê.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia(`(min-width: ${PIN_MIN_WIDTH}px)`);
+    setPinEnabled(mq.matches);
+    const onChange = () => setPinEnabled(mq.matches);
+    mq.addEventListener?.("change", onChange);
+    return () => mq.removeEventListener?.("change", onChange);
+  }, []);
+
   // Scroll listener: tính xem user đã cuộn qua bao nhiêu trong block pin
   // → ra số card cần reveal.
   useEffect(() => {
-    if (reduced) {
+    if (reduced || !pinEnabled) {
       setRevealed(STEPS.length);
       return;
     }
@@ -147,22 +161,22 @@ export function HowItWorksSection() {
       window.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
     };
-  }, [reduced]);
+  }, [reduced, pinEnabled]);
 
-  const wrapHeightVh = reduced
+  const wrapHeightVh = reduced || !pinEnabled
     ? "auto"
     : `${SCROLL_PER_CARD_VH * STEPS.length + 50}vh`;
 
   return (
-    <section className="bg-gradient-to-b from-brand-50/60 to-transparent">
+    <section id="how-it-works" className="bg-gradient-to-b from-brand-50/60 to-transparent">
       {/* Outer wrapper — định độ dài cuộn để pin con sticky chạy */}
       <div
         ref={wrapRef}
         className="relative"
         style={{ minHeight: wrapHeightVh }}
       >
-        {/* Inner sticky — pin lại ở giữa viewport khi user cuộn */}
-        <div className="sticky top-0 flex min-h-screen items-center py-16 lg:py-20">
+        {/* Inner — sticky pin (md+) hoặc static stack (mobile). */}
+        <div className={`flex py-12 sm:py-16 lg:py-20 ${pinEnabled && !reduced ? "sticky top-0 min-h-screen items-center" : ""}`}>
           <div className="container-page w-full">
             <Reveal className="mx-auto max-w-2xl text-center">
               <span className="badge-pill">Cách hoạt động</span>
@@ -172,7 +186,7 @@ export function HowItWorksSection() {
               </p>
             </Reveal>
 
-            <ol className="mx-auto mt-14 grid max-w-6xl items-stretch gap-6 lg:grid-cols-3 lg:gap-10">
+            <ol className="mx-auto mt-10 grid max-w-6xl items-stretch gap-8 sm:mt-14 md:grid-cols-2 lg:grid-cols-3 lg:gap-10 2xl:max-w-7xl 2xl:gap-12">
               {STEPS.map((s, i) => (
                 <li key={s.n} className="relative">
                   <SequentialCard
@@ -262,8 +276,8 @@ function SequentialCard({
           aria-hidden
           className={`mt-4 mb-5 flex items-center justify-center overflow-hidden rounded-card bg-white text-brand-700 transition-transform duration-300 group-hover:scale-105 ${
             step.n === 3 
-              ? "aspect-video w-48" 
-              : "aspect-square w-32"
+              ? "aspect-video w-40 sm:w-48" 
+              : "aspect-square w-28 sm:w-32"
           }`}
         >
           {step.video ? (

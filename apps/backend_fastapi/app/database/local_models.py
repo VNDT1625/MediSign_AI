@@ -1,10 +1,10 @@
-"""Local database models - stored on device (SQLite)."""
+﻿"""Local database models - stored on device (SQLite)."""
 from __future__ import annotations
 
 from datetime import date, datetime
 from typing import Optional
 
-from sqlalchemy import Date, DateTime, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database.base import Base
@@ -76,6 +76,9 @@ class UserProfile(Base):
     emergency_contact_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     emergency_contact_phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
 
+    # Consent for personal context use in RAG re-ranking
+    consent_personal_context: Mapped[bool] = mapped_column(Boolean, default=False)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, nullable=False
     )
@@ -98,7 +101,16 @@ class MyMedicine(Base):
     # Dosage e.g., "650mg", "500mg"
     dosage: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
-    # Schedule as JSON: {"times": ["08:00", "20:00"], "days": ["Mon","Wed","Fri"]}
+    # Risk level from AI scan: "low" | "medium" | "high"
+    risk_level: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+
+    # Warnings as JSON list of strings from AI scan
+    warnings_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Usage/safety guidance from AI scan
+    guidance: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    # Schedule as JSON: {"times": ["08:00", "20:00"], "days": ["mon","wed","fri"]}
     schedule: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     # Remaining pills/capsules
@@ -119,4 +131,30 @@ class MyMedicine(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
+
+
+class DoseLog(Base):
+    """History of doses taken — append-only log."""
+
+    __tablename__ = "dose_logs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+    medicine_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
+
+    # Snapshot of medicine name at the time of taking (denormalized for speed)
+    medicine_name: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    # When the dose was scheduled (null if user took dose ad-hoc, not from schedule)
+    scheduled_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    # When the dose was actually taken (always set)
+    taken_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    # Optional user note
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, nullable=False
     )

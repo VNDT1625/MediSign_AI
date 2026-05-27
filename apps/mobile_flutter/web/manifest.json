@@ -1,12 +1,11 @@
 {
-    "name": "medisign_mobile",
-    "short_name": "medisign_mobile",
+    "name": "MediSign AI",
+    "short_name": "MediSign AI",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "description": "MediSign AI - trợ lý y tế thông minh cho mobile, web và desktop.",
     "prefer_related_applications": false,
     "icons": [
         {

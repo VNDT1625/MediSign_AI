@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -116,8 +115,7 @@ class ModelDownloadService {
   Future<bool> isModelDownloaded(String modelId) async {
     await _ensureInit();
     final path = _prefs!.getString('$_pathKeyPrefix$modelId');
-    if (path == null) return false;
-    return File(path).existsSync();
+    return path != null && path.isNotEmpty;
   }
 
   /// Lấy version model đã tải
@@ -143,8 +141,7 @@ class ModelDownloadService {
   Future<String?> getModelPath(String modelId) async {
     await _ensureInit();
     final path = _prefs!.getString('$_pathKeyPrefix$modelId');
-    if (path != null && File(path).existsSync()) return path;
-    return null;
+    return path != null && path.isNotEmpty ? path : null;
   }
 
   /// Tải model — trả về stream progress
@@ -213,13 +210,6 @@ class ModelDownloadService {
   /// Xóa model đã tải để giải phóng bộ nhớ
   Future<void> deleteModel(String modelId) async {
     await _ensureInit();
-    final path = _prefs!.getString('$_pathKeyPrefix$modelId');
-    if (path != null) {
-      final file = File(path);
-      if (file.existsSync()) {
-        file.deleteSync();
-      }
-    }
     await _prefs!.remove('$_pathKeyPrefix$modelId');
     await _prefs!.remove('$_versionKeyPrefix$modelId');
   }

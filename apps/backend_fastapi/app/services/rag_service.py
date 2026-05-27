@@ -323,14 +323,15 @@ class RAGService:
         for filename in (
             "nutrition_requirements_by_age.json",
             "vietnam_common_diseases.json",
+            "vietnam_diseases_full.json",       # ICD-10 enriched (17K diseases)
             "vietnamese_symptom_phrases.json",
             "public_guideline_chunks.json",
         ):
             candidate = kb_dir / filename
             if not candidate.exists():
                 continue
-            # raised limit: 50MB (was 5MB) — vietnamese_symptom_phrases có thể swell up
-            if candidate.stat().st_size > 50 * 1024 * 1024:
+            # raised limit: 200MB — vietnam_diseases_full.json có thể ~50-100MB
+            if candidate.stat().st_size > 200 * 1024 * 1024:
                 continue
             try:
                 raw = json.loads(candidate.read_text(encoding="utf-8"))

@@ -10,9 +10,15 @@ import '../../../core/services/auth_service.dart';
 /// Login page — Apple-style glassmorphism.
 /// Gradient bg → glass form card → frosted inputs → glass CTA.
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key, required this.onAuthComplete});
+  const LoginPage({
+    super.key,
+    required this.onAuthComplete,
+    required this.authService,
+  });
 
   final VoidCallback onAuthComplete;
+  /// Shared [AuthService] instance from root — must NOT create a new one here.
+  final AuthService authService;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -79,9 +85,10 @@ class _LoginPageState extends State<LoginPage> {
         ? _emailCtrl.text.trim()
         : _phoneCtrl.text.trim();
 
-    // Use AuthService
-    final authService = AuthService();
-    final result = await authService.login(
+    // Use the shared AuthService instance passed from root (app.dart).
+    // Do NOT create AuthService() here — that would be a separate instance
+    // with its own token store, leaving _auth in app.dart with null tokens.
+    final result = await widget.authService.login(
       identifier: identifier,
       password: _passCtrl.text,
     );
@@ -232,7 +239,9 @@ class _LoginPageState extends State<LoginPage> {
                       Navigator.of(context).pushReplacement(
                         MaterialPageRoute(
                           builder: (_) => RegisterPage(
-                              onAuthComplete: widget.onAuthComplete),
+                            onAuthComplete: widget.onAuthComplete,
+                            authService: widget.authService,
+                          ),
                         ),
                       );
                     },

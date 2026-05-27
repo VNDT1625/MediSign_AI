@@ -235,6 +235,65 @@ else:
 
 
 # ══════════════════════════════════════════════════════════
+# BUOC 7.5 — Patch QLoRA defaults truoc khi train
+# ══════════════════════════════════════════════════════════
+
+print_title("BUOC 7.5: Patch QLoRA defaults toi uu")
+
+with open(SCRIPT_PATH, "r", encoding="utf-8") as f:
+    script = f.read()
+
+qlora_patches = {
+    'LORA_TARGET_MODULES = ["q_proj", "v_proj", "k_proj", "o_proj"]': (
+        'LORA_TARGET_MODULES = [\n'
+        '    "q_proj",\n'
+        '    "v_proj",\n'
+        '    "k_proj",\n'
+        '    "o_proj",\n'
+        '    "gate_proj",\n'
+        '    "up_proj",\n'
+        '    "down_proj",\n'
+        ']'
+    ),
+    "LORA_DROPOUT = 0.1": "LORA_DROPOUT = 0.05",
+    "WARMUP_RATIO = 0.03": "WARMUP_RATIO = 0.05",
+    "packing=False,": "packing=True,",
+}
+
+applied = []
+skipped = []
+
+for old, new in qlora_patches.items():
+    if old in script:
+        script = script.replace(old, new)
+        applied.append(old[:72])
+    else:
+        skipped.append(old[:72])
+
+if "weight_decay=" not in script and "neftune_noise_alpha=" not in script:
+    old = "dataloader_pin_memory=False,"
+    new = (
+        "dataloader_pin_memory=False,\n"
+        "        weight_decay=0.01,\n"
+        "        neftune_noise_alpha=5,"
+    )
+    if old in script:
+        script = script.replace(old, new)
+        applied.append(old[:72])
+    else:
+        skipped.append(old[:72])
+
+if applied:
+    with open(SCRIPT_PATH, "w", encoding="utf-8") as f:
+        f.write(script)
+
+for item in applied:
+    print(f"Patched: {item}...")
+for item in skipped:
+    print(f"Da co hoac khong tim thay: {item}...")
+
+
+# ══════════════════════════════════════════════════════════
 # BUOC 8 — Patch Gemma3 token_type_ids FIX MANH
 # ══════════════════════════════════════════════════════════
 
@@ -504,6 +563,9 @@ def build_train_cmd(
     output_dir,
     adapter_dir,
     max_seq_length,
+    per_device_batch_size="1",
+    gradient_accumulation_steps="16",
+    learning_rate="3e-4",
     max_steps=None,
     num_epochs=None,
 ):
@@ -516,9 +578,9 @@ def build_train_cmd(
         "--output_dir", output_dir,
         "--adapter_dir", adapter_dir,
         "--max_seq_length", str(max_seq_length),
-        "--per_device_batch_size", "1",
-        "--gradient_accumulation_steps", "16",
-        "--learning_rate", "0.0002",
+        "--per_device_batch_size", str(per_device_batch_size),
+        "--gradient_accumulation_steps", str(gradient_accumulation_steps),
+        "--learning_rate", str(learning_rate),
     ]
 
     if max_steps is not None:
@@ -593,24 +655,31 @@ FULL_OUTPUT = "output/medisign_medgemma4b"
 FULL_ADAPTER = f"{FULL_OUTPUT}/adapter"
 
 train_seq_len = best_seq_len or 512
+per_device_batch = 1
+grad_accum = 16 if torch.cuda.device_count() >= 2 else 32
 
 print(f"Train that dung max_seq_length={train_seq_len}")
+print(
+    "Full train config: "
+    f"per_device_batch_size={per_device_batch}, "
+    f"gradient_accumulation_steps={grad_accum}, "
+    "num_epochs=3, learning_rate=3e-4"
+)
 
 cmd = build_train_cmd(
     output_dir=FULL_OUTPUT,
     adapter_dir=FULL_ADAPTER,
     max_seq_length=train_seq_len,
-    num_epochs=1,
+    per_device_batch_size=per_device_batch,
+    gradient_accumulation_steps=grad_accum,
+    learning_rate="3e-4",
+    num_epochs=3,
 )
 
-result = run_cmd(cmd, check=False, capture=True)
+result = run_cmd(cmd, check=False, capture=False)
 
 if result.returncode != 0:
     print("Train that FAILED")
-    print("\nSTDOUT tail:")
-    print((result.stdout or "")[-3000:])
-    print("\nSTDERR tail:")
-    print((result.stderr or "")[-5000:])
     sys.exit(1)
 
 print("Train that hoan thanh!")
@@ -672,7 +741,7 @@ print(f"  Model         : {MODEL_ID}")
 print(f"  GPU           : {torch.cuda.get_device_name(0)}")
 print(f"  GPU count     : {torch.cuda.device_count()}")
 print(f"  Smoke test    : PASSED")
-print(f"  Train that    : 1 epoch")
+print(f"  Train that    : 3 epochs")
 print(f"  Max seq length: {train_seq_len}")
 print(f"  Adapter output: {FULL_ADAPTER}")
 print(f"  Adapter zip   : {ZIP_PATH} ({size_mb:.1f} MB)")

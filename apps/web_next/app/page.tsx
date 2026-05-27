@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { SiteHeader } from "@/components/SiteHeader";
 import { HeroVideo } from "@/components/HeroVideo";
@@ -17,26 +17,27 @@ import { Footer } from "@/components/sections/Footer";
 export default function HomePage() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [pendingMessage, setPendingMessage] = useState<string | undefined>();
-  const searchParams = useSearchParams();
-
-  // Tự mở LoginModal khi được redirect từ /app/* với ?login=1
-  // Ví dụ: /?login=1&session=expired (phiên hết hạn)
-  //        /?login=1&intent=/app/medicine (chưa đăng nhập)
-  useEffect(() => {
-    const shouldOpenLogin = searchParams.get("login") === "1";
-    const isSessionExpired = searchParams.get("session") === "expired";
-    if (shouldOpenLogin) {
-      if (isSessionExpired) {
-        setPendingMessage("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.");
-      }
-      setLoginOpen(true);
-    }
-  }, [searchParams]);
 
   function openLogin(message?: string) {
     setPendingMessage(message);
     setLoginOpen(true);
   }
+
+  // Voice command "dang nhap" / "dang xuat" -> mo / dong LoginModal.
+  useEffect(() => {
+    function onLogin() {
+      setLoginOpen(true);
+    }
+    function onLogout() {
+      setLoginOpen(false);
+    }
+    window.addEventListener("medisign:login", onLogin);
+    window.addEventListener("medisign:logout", onLogout);
+    return () => {
+      window.removeEventListener("medisign:login", onLogin);
+      window.removeEventListener("medisign:logout", onLogout);
+    };
+  }, []);
 
   return (
     <>
@@ -55,6 +56,10 @@ export default function HomePage() {
 
       <Footer />
 
+      <Suspense fallback={null}>
+        <LoginRedirectHandler onOpenLogin={openLogin} />
+      </Suspense>
+
       <LoginModal
         open={loginOpen}
         onClose={() => setLoginOpen(false)}
@@ -62,4 +67,25 @@ export default function HomePage() {
       />
     </>
   );
+}
+
+function LoginRedirectHandler({
+  onOpenLogin,
+}: {
+  onOpenLogin: (message?: string) => void;
+}) {
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const shouldOpenLogin = searchParams.get("login") === "1";
+    const isSessionExpired = searchParams.get("session") === "expired";
+    if (shouldOpenLogin) {
+      const msg = isSessionExpired
+        ? "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại."
+        : undefined;
+      onOpenLogin(msg);
+    }
+  }, [searchParams, onOpenLogin]);
+
+  return null;
 }

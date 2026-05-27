@@ -15,15 +15,15 @@ type Stat = {
 
 const STATS: Stat[] = [
   {
-    end: 18764,
+    end: 17263,
     label: "Cặp hỏi-đáp y khoa tiếng Việt",
-    sub: "Đã làm sạch và huấn luyện",
+    sub: "Đã làm sạch và huấn luyện MedGemma 1.5 4B",
     tone: "brand",
   },
   {
-    end: 242,
-    label: "Thuốc trong cơ sở dữ liệu",
-    sub: "Có cảnh báo tương tác",
+    end: 60472,
+    label: "Records thuốc trong knowledge base",
+    sub: "Nguồn DAV — có hoạt chất, số đăng ký, tương tác",
     tone: "accent",
   },
   {
@@ -73,7 +73,7 @@ export function AboutMission() {
       />
 
       <div className="container-page">
-        <div className="grid gap-10 lg:grid-cols-12 lg:items-start lg:gap-12">
+        <div className="grid gap-8 sm:gap-10 lg:grid-cols-12 lg:items-start lg:gap-12">
           {/* Mission statement */}
           <div className="lg:col-span-7">
             <Reveal direction="up">
@@ -94,8 +94,8 @@ export function AboutMission() {
                   họ vẫn cần lời tư vấn y tế đáng tin cậy bằng tiếng mẹ đẻ.
                 </p>
                 <p>
-                  MediSign AI dùng mô hình y khoa tự host (MedGemma 4 fine-tune
-                  LoRA) cùng kỹ thuật RAG để đưa ra gợi ý y khoa chính xác, dễ
+                  MediSign AI dùng mô hình y khoa tự host (<code className="rounded bg-ink-100 px-1 text-[13px] font-mono text-brand-700">google/medgemma-1.5-4b-it</code> fine-tune QLoRA)
+                  cùng kỹ thuật RAG 128.380 records để đưa ra gợi ý y khoa chính xác, dễ
                   hiểu, và{" "}
                   <span className="font-semibold text-ink-900">
                     luôn nhắc bạn đi khám khi cần thiết

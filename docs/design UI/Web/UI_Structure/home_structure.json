@@ -1,0 +1,117 @@
+{
+  "pageName": "Home Landing Page",
+  "layout": "Vertical Scroll / Landing Page",
+  "theme": {
+    "primaryColor": "#0284C7",
+    "accentColor": "#F97316",
+    "backgroundColor": "#FFFFFF"
+  },
+  "sections": [
+    {
+      "id": "header",
+      "type": "navigation",
+      "elements": [
+        { "type": "logo", "label": "MediSign AI" },
+        { "type": "nav_links", "items": ["Trang chủ", "Quyền lợi", "Pricing", "Về chúng tôi", "Tải ứng dụng"] },
+        { "type": "button", "label": "Đăng nhập", "variant": "ghost" },
+        { "type": "button", "label": "Tạo tài khoản", "variant": "primary" }
+      ]
+    },
+    {
+      "id": "hero",
+      "type": "hero_section",
+      "content": {
+        "title": "MediSign AI",
+        "subtitle": "Bác sĩ AI đồng hành đáng tin cậy, kết nối yêu thương.",
+        "description": ["Phân tích triệu chứng chính xác", "Tư vấn sức khỏe 24/7 bằng giọng nói", "Bảo mật & bảo vệ dữ liệu"]
+      },
+      "visual": {
+        "mainImage": "Bác sĩ AI 3D (Home_1.png)",
+        "decoration": "Màn hình phân tích X-quang Glassmorphism"
+      },
+      "interactive": {
+        "searchBar": {
+          "placeholder": "Hỏi gì cũng có, MediSign AI lo nhé...",
+          "icons": ["Microphone", "Send"]
+        }
+      },
+      "bottomCards": [
+        { "icon": "SmilingFace", "label": "An toàn", "sublabel": "Bảo mật tuyệt đối" },
+        { "icon": "CheckCircle", "label": "Dễ dàng", "sublabel": "Giao diện thân thiện" },
+        { "icon": "SupportAgent", "label": "Hỗ trợ 24/7", "sublabel": "Luôn sẵn sàng" },
+        { "icon": "Personalize", "label": "Cá nhân hóa", "sublabel": "Hiểu bạn hơn mỗi ngày" }
+      ]
+    },
+    {
+      "id": "why_choose",
+      "type": "features_grid",
+      "title": "Tại sao chọn MediSign AI?",
+      "items": [
+        { "title": "Đội ngũ bác sĩ chuyên môn", "desc": "AI được huấn luyện bởi chuyên gia y tế giàu kinh nghiệm." },
+        { "title": "Hiểu bạn, chăm bạn", "desc": "AI nhớ tiền sử, theo dõi sức khỏe và cá nhân hóa lời khuyên." },
+        { "title": "Dễ sử dụng & mọi lúc", "desc": "Giao diện đơn giản, AI luôn sẵn sàng 24/7 trên mọi thiết bị." },
+        { "title": "Bảo mật & riêng tư", "desc": "Dữ liệu mã hóa chuẩn y tế, chỉ bạn mới kiểm soát." }
+      ]
+    },
+    {
+      "id": "how_it_works",
+      "type": "steps_process",
+      "title": "Cách hoạt động",
+      "steps": [
+        { "step": 1, "label": "Nhập triệu chứng", "desc": "Mô tả triệu chứng hoặc tải ảnh kết quả xét nghiệm." },
+        { "step": 2, "label": "AI phân tích", "desc": "Phân tích dữ liệu, tham chiếu hàng triệu nguồn y khoa." },
+        { "step": 3, "label": "Tư vấn & chăm sóc", "desc": "Nhận tư vấn, hướng dẫn kế hoạch chăm sóc phù hợp." }
+      ]
+    },
+    {
+      "id": "device_support",
+      "type": "split_layout",
+      "left": {
+        "title": "Trải nghiệm trên mọi thiết bị",
+        "desc": "MediSign AI đồng hành cùng bạn ở bất cứ đâu.",
+        "buttons": ["Google Play", "App Store", "Dùng trên Web", "Tải cho Windows"]
+      },
+      "right": {
+        "image": "Laptop & Mobile Mockup (Home_4.png)"
+      }
+    },
+    {
+      "id": "app_preview",
+      "type": "cards_row",
+      "items": [
+        { "id": "soul_garden", "label": "SoulGarden", "badge": "Chỉ có trên app", "desc": "Không gian chăm sóc tinh thần..." },
+        { "id": "medicine_cabinet", "label": "Tủ thuốc", "badge": "Chỉ có trên app", "desc": "Quản lý thuốc, nhắc lịch uống..." }
+      ]
+    },
+    {
+      "id": "pricing_preview",
+      "type": "pricing_table",
+      "title": "Bảng giá phù hợp cho mọi nhu cầu",
+      "tiers": [
+        { "name": "Gói Cơ bản", "price": "Miễn phí", "variant": "standard" },
+        { "name": "Gói Phổ Pro", "price": "199.000đ / tháng", "variant": "featured" },
+        { "name": "Gói Gia đình", "price": "399.000đ / tháng", "variant": "standard" }
+      ]
+    },
+    {
+      "id": "testimonials",
+      "type": "carousel",
+      "title": "Người dùng nói gì về MediSign AI?",
+      "items": [
+        { "name": "Trần Minh Nguyệt", "age": 62, "comment": "Tôi rất yên tâm khi có MediSign AI đồng hành..." },
+        { "name": "Lê Anh Dũng", "age": 35, "comment": "Giao diện thân thiện, AI tư vấn rất chi tiết..." },
+        { "name": "Nguyễn Thu Hương", "age": 29, "comment": "Tính năng Tủ thuốc và SoulGarden thật sự hữu ích..." }
+      ]
+    },
+    {
+      "id": "footer",
+      "type": "footer",
+      "columns": [
+        { "title": "Về chúng tôi", "links": ["Giới thiệu", "Sứ mệnh", "Đội ngũ", "Tuyển dụng", "Tin tức"] },
+        { "title": "Hỗ trợ", "links": ["Trung tâm trợ giúp", "Hướng dẫn sử dụng", "Liên hệ", "Chính sách bảo mật", "Điều khoản dịch vụ"] },
+        { "title": "Tính năng", "links": ["Trò chuyện AI", "Hồ sơ sức khỏe", "Kết quả xét nghiệm", "Đặt lịch khám", "SoulGarden & Tủ thuốc"] },
+        { "title": "Liên hệ", "info": ["support@medisign.ai", "1900 1234", "Đà Nẵng, Việt Nam"] }
+      ]
+    }
+  ]
+}

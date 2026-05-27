@@ -34,7 +34,7 @@ const TEAMS: Member[] = [
   {
     name: "AI Research",
     role: "ML & Vision-Language",
-    bio: "Huấn luyện MedGemma 4 trên 18,764 cặp Q&A y khoa Việt — kết hợp RAG và Dual LoRA để cá nhân hoá an toàn.",
+    bio: "Huấn luyện MedGemma 1.5 4B trên 17.263 cặp Q&A y khoa Việt (dedup từ 35.513) — kết hợp RAG hybrid và Dual LoRA Medical/Psychology.",
     initials: "AR",
     accent: "brand",
   },
@@ -70,20 +70,20 @@ const ACCENT: Record<NonNullable<Member["accent"]>, { ring: string; text: string
   },
   accent: {
     ring: "ring-accent/30",
-    text: "text-accent",
-    chip: "bg-accent-soft text-accent",
+    text: "text-accent-700",
+    chip: "bg-accent-soft text-accent-800",
     glow: "hover:shadow-[0_18px_40px_-20px_rgba(249,115,22,0.5)]",
   },
   success: {
     ring: "ring-success/30",
-    text: "text-success",
-    chip: "bg-success-soft text-success",
+    text: "text-success-700",
+    chip: "bg-success-soft text-success-900",
     glow: "hover:shadow-[0_18px_40px_-20px_rgba(34,197,94,0.5)]",
   },
   warn: {
     ring: "ring-warn/30",
-    text: "text-warn",
-    chip: "bg-warn-soft text-warn",
+    text: "text-warn-800",
+    chip: "bg-warn-soft text-warn-800",
     glow: "hover:shadow-[0_18px_40px_-20px_rgba(245,158,11,0.5)]",
   },
 };
@@ -224,7 +224,7 @@ export function AboutTeam() {
                 </p>
               </div>
             </div>
-            <span className="mt-4 inline-flex flex-none items-center gap-1.5 rounded-pill bg-success-soft px-3 py-1 text-xs font-semibold text-success sm:mt-0">
+            <span className="mt-4 inline-flex flex-none items-center gap-1.5 rounded-pill bg-success-soft px-3 py-1 text-xs font-semibold text-success-900 sm:mt-0">
               <span
                 aria-hidden="true"
                 className="h-1.5 w-1.5 rounded-full bg-success animate-pulse-soft"

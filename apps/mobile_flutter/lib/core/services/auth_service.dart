@@ -9,13 +9,29 @@ import '../validators/auth_validators.dart';
 
 /// API Configuration
 class ApiConfig {
-  // For Android emulator: 10.0.2.2 maps to localhost
-  // For iOS simulator: use localhost or your machine's IP
-  // For web: use localhost
+  // API base URL configuration:
+  //   - Android emulator : 10.0.2.2  → maps to host machine's localhost
+  //   - iOS simulator / desktop / web: localhost
+  //   - Physical device  : set FLUTTER_API_BASE_URL env var at build time,
+  //     e.g. `flutter run --dart-define=FLUTTER_API_BASE_URL=http://192.168.1.x:8000/api/v1`
+  //     Falls back to LAN IP placeholder so it fails loudly instead of silently.
+  static const String _envBaseUrl = String.fromEnvironment(
+    'FLUTTER_API_BASE_URL',
+    defaultValue: '',
+  );
+
   static String get baseUrl {
-    if (kIsWeb) {
+    // Prefer explicit override (physical device / staging / prod)
+    if (_envBaseUrl.isNotEmpty) return _envBaseUrl;
+
+    if (kIsWeb ||
+        defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.linux) {
       return 'http://localhost:8000/api/v1';
     }
+    // Android emulator: 10.0.2.2 maps to host machine localhost
     return 'http://10.0.2.2:8000/api/v1';
   }
 

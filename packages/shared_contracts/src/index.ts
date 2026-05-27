@@ -22,7 +22,7 @@ export type {
 
 export type { TriageRequest, TriageResponse } from "./triage";
 
-export type { MedicineScanRequest, MedicineScanResponse } from "./medicine";
+export type { MedicineScanRequest, MedicineScanResponse, CabinetItemCreate, CabinetItemUpdate, CabinetItem, CabinetListResponse } from "./medicine";
 
 export type { DrugSearchRequest, DrugSearchResponse } from "./drug";
 

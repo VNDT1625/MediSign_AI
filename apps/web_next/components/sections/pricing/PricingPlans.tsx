@@ -5,47 +5,47 @@ import { Reveal } from "@/components/Reveal";
 
 type Cycle = "monthly" | "yearly";
 
+type Feature = { text: string; highlight?: boolean };
+
 type Plan = {
   id: string;
   name: string;
-  monthlyPrice: string;
-  yearlyPrice: string;
-  yearlySaving?: string;
-  cycle: string;
-  desc: string;
-  features: { text: string; highlight?: boolean }[];
-  cta: string;
-  tone: "light" | "dark" | "premium";
+  tagline: string;
   badge?: string;
-  /** Hiển thị "Phổ biến nhất" ribbon */
-  popular?: boolean;
+  monthlyPrice: number | null;
+  yearlyPrice: number | null;
+  desc: string;
+  features: Feature[];
+  cta: string;
+  ctaNote?: string;
+  variant: "plain" | "featured" | "premium";
 };
 
 const PLANS: Plan[] = [
   {
     id: "free",
     name: "Cơ bản",
-    monthlyPrice: "Miễn phí",
-    yearlyPrice: "Miễn phí",
-    cycle: "",
+    tagline: "Miễn phí mãi mãi",
+    monthlyPrice: null,
+    yearlyPrice: null,
     desc: "Khám phá AI y tế, không cần thẻ tín dụng.",
     features: [
       { text: "Chat AI cơ bản (20 lượt/ngày)" },
       { text: "Lịch sử hội thoại 7 ngày" },
       { text: "Tra cứu thông tin thuốc" },
       { text: "Hỗ trợ qua email" },
-      { text: "1 thiết bị" }
+      { text: "1 thiết bị" },
     ],
     cta: "Bắt đầu miễn phí",
-    tone: "light"
+    variant: "plain",
   },
   {
     id: "pro",
     name: "Pro",
-    monthlyPrice: "199.000đ",
-    yearlyPrice: "159.000đ",
-    yearlySaving: "Tiết kiệm 480.000đ/năm",
-    cycle: "/ tháng",
+    tagline: "Dành cho cá nhân",
+    badge: "Phổ biến nhất",
+    monthlyPrice: 199000,
+    yearlyPrice: 159000,
     desc: "Trải nghiệm đầy đủ cho cá nhân chăm sóc sức khoẻ.",
     features: [
       { text: "Chat AI không giới hạn 24/7", highlight: true },
@@ -53,20 +53,18 @@ const PLANS: Plan[] = [
       { text: "Lịch sử & nhắc lịch không giới hạn" },
       { text: "Đồng bộ đa thiết bị" },
       { text: "Phân tích triệu chứng nâng cao" },
-      { text: "Ưu tiên hỗ trợ 24/7" }
+      { text: "Ưu tiên hỗ trợ 24/7" },
     ],
     cta: "Dùng thử Pro 7 ngày",
-    tone: "dark",
-    badge: "Phổ biến nhất",
-    popular: true
+    ctaNote: "Không cần thẻ tín dụng",
+    variant: "featured",
   },
   {
     id: "family",
     name: "Gia đình",
-    monthlyPrice: "399.000đ",
-    yearlyPrice: "319.000đ",
-    yearlySaving: "Tiết kiệm 960.000đ/năm",
-    cycle: "/ tháng",
+    tagline: "Chăm sóc cả nhà",
+    monthlyPrice: 399000,
+    yearlyPrice: 319000,
     desc: "Chăm sóc toàn diện cho cả gia đình bạn.",
     features: [
       { text: "Tất cả tính năng Pro", highlight: true },
@@ -74,207 +72,170 @@ const PLANS: Plan[] = [
       { text: "Theo dõi sức khoẻ cả nhà" },
       { text: "Tư vấn chuyên sâu theo hồ sơ" },
       { text: "Báo cáo tổng hợp hàng tháng" },
-      { text: "Cảnh báo sức khoẻ thông minh" }
+      { text: "Cảnh báo sức khoẻ thông minh" },
     ],
     cta: "Dùng thử Gia đình 7 ngày",
-    tone: "premium"
-  }
+    ctaNote: "7 ngày miễn phí",
+    variant: "premium",
+  },
 ];
 
-export function PricingPlans({ onCta }: { onCta?: () => void }) {
-  const [cycle, setCycle] = useState<Cycle>("monthly");
+/**
+ * Format số kiểu vi-VN (`199.000`) một cách deterministic — KHÔNG dùng
+ * `toLocaleString("vi-VN")` vì Node trên Windows có thể fallback sang en-US
+ * khi ICU "small" được build, làm output server (`199,000`) lệch với client
+ * Chrome (`199.000`) → React kêu "Hydration failed".
+ */
+function fmt(n: number) {
+  const sign = n < 0 ? "-" : "";
+  const abs = Math.abs(Math.trunc(n)).toString();
+  const grouped = abs.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return sign + grouped + "đ";
+}
 
+// ---------------------------------------------------------------------------
+// Icons
+// ---------------------------------------------------------------------------
+
+function ICheck({ variant }: { variant: Plan["variant"] }) {
+  const cls =
+    variant === "featured"
+      ? "bg-white/25 text-white"
+      : variant === "premium"
+        ? "bg-teal-100 text-teal-600"
+        : "bg-cyan-50 text-cyan-600";
   return (
-    <section id="plans" className="py-16 lg:py-24">
-      <div className="container-page">
-        {/* ── Billing toggle ── */}
-        <Reveal className="flex flex-col items-center gap-3">
-          <div className="flex items-center gap-3">
-            <span
-              className={`text-sm font-medium transition-colors duration-200 ${
-                cycle === "monthly" ? "text-ink-900" : "text-ink-400"
-              }`}
-            >
-              Hàng tháng
-            </span>
-
-            <button
-              type="button"
-              role="switch"
-              aria-checked={cycle === "yearly"}
-              aria-label="Chuyển sang thanh toán hàng năm"
-              onClick={() => setCycle((c) => (c === "monthly" ? "yearly" : "monthly"))}
-              className={`relative inline-flex h-7 w-12 cursor-pointer items-center rounded-pill transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 ${
-                cycle === "yearly" ? "bg-brand" : "bg-ink-200"
-              }`}
-            >
-              <span
-                className={`inline-block h-5 w-5 rounded-full bg-white shadow-soft transition-transform duration-200 ${
-                  cycle === "yearly" ? "translate-x-6" : "translate-x-1"
-                }`}
-              />
-            </button>
-
-            <span
-              className={`flex items-center gap-1.5 text-sm font-medium transition-colors duration-200 ${
-                cycle === "yearly" ? "text-ink-900" : "text-ink-400"
-              }`}
-            >
-              Hàng năm
-              <span className="rounded-pill bg-success-soft px-2 py-0.5 text-xs font-bold text-success">
-                -20%
-              </span>
-            </span>
-          </div>
-
-          {cycle === "yearly" && (
-            <p className="text-sm font-medium text-success">
-              Tiết kiệm tới 960.000đ mỗi năm khi chọn thanh toán hàng năm
-            </p>
-          )}
-        </Reveal>
-
-        {/* ── Plan cards ── */}
-        <Reveal
-          as="ul"
-          stagger
-          className="mx-auto mt-10 grid max-w-6xl items-stretch gap-6 lg:grid-cols-3"
-        >
-          {PLANS.map((plan, i) => (
-            <li
-              key={plan.id}
-              className="reveal flex"
-              style={{ ["--reveal-i" as any]: i }}
-            >
-              <PlanCard plan={plan} cycle={cycle} onCta={onCta} />
-            </li>
-          ))}
-        </Reveal>
-
-        {/* ── Bottom note ── */}
-        <Reveal delay={320} className="mt-8 text-center">
-          <p className="text-sm text-ink-500">
-            Tất cả gói trả phí đều có{" "}
-            <strong className="font-semibold text-ink-700">7 ngày dùng thử miễn phí</strong>.
-            {" "}Không cần thẻ tín dụng. Huỷ bất cứ lúc nào.
-          </p>
-        </Reveal>
-      </div>
-    </section>
+    <span
+      aria-hidden
+      className={`mt-0.5 grid h-5 w-5 flex-none place-items-center rounded-full ${cls}`}
+    >
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+        <path
+          d="M5 12l4 4L19 6"
+          stroke="currentColor"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </span>
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Plan card — 3 tones: light (free), dark (pro), premium (family)
-───────────────────────────────────────────────────────────── */
-function PlanCard({
+function IStar() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+    </svg>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Toggle
+// ---------------------------------------------------------------------------
+
+function BillingToggle({
+  yearly,
+  onChange,
+}: {
+  yearly: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-center gap-3">
+      <span
+        className={`text-sm font-medium transition-colors duration-200 ${
+          !yearly ? "text-slate-900" : "text-slate-500"
+        }`}
+      >
+        Hàng tháng
+      </span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={yearly}
+        aria-label="Chuyển sang thanh toán hàng năm"
+        onClick={() => onChange(!yearly)}
+        className={`relative inline-flex h-7 w-12 cursor-pointer items-center rounded-full transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 ${
+          yearly ? "bg-cyan-600" : "bg-slate-200"
+        }`}
+      >
+        <span className="sr-only">
+          {yearly ? "Đang chọn hàng năm" : "Đang chọn hàng tháng"}
+        </span>
+        <span
+          className={`inline-block h-5 w-5 rounded-full bg-white shadow-md transition-transform duration-200 ${
+            yearly ? "translate-x-6" : "translate-x-1"
+          }`}
+        />
+      </button>
+      <span
+        className={`flex items-center gap-1.5 text-sm font-medium transition-colors duration-200 ${
+          yearly ? "text-slate-900" : "text-slate-500"
+        }`}
+      >
+        Hàng năm
+        <span
+          className={`overflow-hidden rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-700 transition-all duration-300 ${
+            yearly ? "max-w-[100px] opacity-100" : "max-w-0 opacity-0 px-0"
+          }`}
+          aria-live="polite"
+        >
+          -20%
+        </span>
+      </span>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Plain card (Cơ bản)
+// ---------------------------------------------------------------------------
+
+function PlainCard({
   plan,
-  cycle,
-  onCta
+  onCta,
 }: {
   plan: Plan;
-  cycle: Cycle;
   onCta?: () => void;
 }) {
-  const price = cycle === "yearly" ? plan.yearlyPrice : plan.monthlyPrice;
-  const saving = cycle === "yearly" ? plan.yearlySaving : undefined;
-
-  if (plan.tone === "dark") {
-    return (
-      <div className="card-lift relative flex w-full flex-col overflow-hidden rounded-card bg-gradient-to-b from-[#0B3A8C] to-[#0F4FBF] p-6 text-white shadow-card lg:scale-[1.04]">
-        {/* Decorative blobs */}
-        <span aria-hidden className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-white/10 blur-2xl" />
-        <span aria-hidden className="pointer-events-none absolute -left-8 bottom-0 h-28 w-28 rounded-full bg-accent/15 blur-2xl" />
-
-        {/* Popular badge */}
-        {plan.badge && (
-          <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-pill bg-accent px-4 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-soft">
-            {plan.badge}
-          </span>
-        )}
-
-        <PlanHeader name={plan.name} price={price} cycle={plan.cycle} saving={saving} dark />
-
-        <p className="mt-2 text-sm text-white/70">{plan.desc}</p>
-
-        <ul className="mt-5 flex-1 space-y-2.5">
-          {plan.features.map((f) => (
-            <li key={f.text} className="flex items-start gap-2 text-sm">
-              <CheckIcon dark />
-              <span className={f.highlight ? "font-semibold text-white" : "text-white/85"}>
-                {f.text}
-              </span>
-            </li>
-          ))}
-        </ul>
-
-        <button
-          type="button"
-          onClick={onCta}
-          className="mt-6 inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-pill bg-white text-base font-semibold text-brand-700 shadow-soft transition-colors duration-200 hover:bg-brand-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brand-700"
-        >
-          {plan.cta}
-        </button>
-
-        <p className="mt-3 text-center text-xs text-white/50">7 ngày miễn phí · Không cần thẻ</p>
-      </div>
-    );
-  }
-
-  if (plan.tone === "premium") {
-    return (
-      <div className="card-lift relative flex w-full flex-col overflow-hidden rounded-card border border-ink-200 bg-white p-6 shadow-soft hover:border-brand/30">
-        {/* Subtle premium top accent */}
-        <div className="absolute inset-x-0 top-0 h-1 rounded-t-card bg-gradient-to-r from-brand via-[#0EA5E9] to-brand" aria-hidden />
-
-        <PlanHeader name={plan.name} price={price} cycle={plan.cycle} saving={saving} />
-
-        <p className="mt-2 text-sm text-ink-500">{plan.desc}</p>
-
-        <ul className="mt-5 flex-1 space-y-2.5">
-          {plan.features.map((f) => (
-            <li key={f.text} className="flex items-start gap-2 text-sm">
-              <CheckIcon />
-              <span className={f.highlight ? "font-semibold text-ink-900" : "text-ink-700"}>
-                {f.text}
-              </span>
-            </li>
-          ))}
-        </ul>
-
-        <button
-          type="button"
-          onClick={onCta}
-          className="mt-6 inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-pill border-2 border-ink-200 bg-white text-base font-semibold text-ink-800 transition-colors duration-200 hover:border-brand hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
-        >
-          {plan.cta}
-        </button>
-
-        <p className="mt-3 text-center text-xs text-ink-400">7 ngày miễn phí · Không cần thẻ</p>
-      </div>
-    );
-  }
-
-  // tone === "light" (free plan)
   return (
-    <div className="card-lift flex w-full flex-col rounded-card border border-ink-200 bg-white p-6 shadow-soft hover:border-brand/30">
-      <PlanHeader name={plan.name} price={price} cycle={plan.cycle} saving={saving} />
+    <div className="flex h-full w-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-cyan-200 hover:shadow-md">
+      {/* Header */}
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-600">
+          {plan.name}
+        </p>
+        <p className="mt-0.5 text-[13px] text-slate-500">{plan.tagline}</p>
+      </div>
 
-      <p className="mt-2 text-sm text-ink-500">{plan.desc}</p>
+      {/* Price */}
+      <div className="mt-4">
+        <div className="flex items-end gap-1">
+          <span className="text-[36px] font-extrabold leading-none text-slate-900">
+            Miễn phí
+          </span>
+        </div>
+        <p className="mt-1 text-[12px] text-slate-500">Không cần thẻ tín dụng</p>
+      </div>
 
-      <ul className="mt-5 flex-1 space-y-2.5">
+      <div className="my-5 h-px bg-slate-100" />
+
+      {/* Features */}
+      <ul className="flex-1 space-y-3" aria-label={`Tính năng gói ${plan.name}`}>
         {plan.features.map((f) => (
-          <li key={f.text} className="flex items-start gap-2 text-sm text-ink-700">
-            <CheckIcon />
-            <span>{f.text}</span>
+          <li key={f.text} className="flex items-start gap-2.5">
+            <ICheck variant="plain" />
+            <span className="text-[13.5px] text-slate-600">{f.text}</span>
           </li>
         ))}
       </ul>
 
+      {/* CTA */}
       <button
         type="button"
         onClick={onCta}
-        className="mt-6 inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-pill border-2 border-ink-200 bg-white text-base font-semibold text-ink-800 transition-colors duration-200 hover:border-brand hover:text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+        className="mt-7 inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-xl border-2 border-slate-200 bg-white text-[14px] font-semibold text-slate-700 transition-all duration-200 hover:border-cyan-500 hover:text-cyan-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2"
       >
         {plan.cta}
       </button>
@@ -282,52 +243,281 @@ function PlanCard({
   );
 }
 
-function PlanHeader({
-  name,
-  price,
-  cycle,
-  saving,
-  dark = false
+// ---------------------------------------------------------------------------
+// Featured card (Pro) — nổi lên, conversion-optimized
+// ---------------------------------------------------------------------------
+
+function FeaturedCard({
+  plan,
+  yearly,
+  onCta,
 }: {
-  name: string;
-  price: string;
-  cycle: string;
-  saving?: string;
-  dark?: boolean;
+  plan: Plan;
+  yearly: boolean;
+  onCta?: () => void;
 }) {
+  const price = yearly ? plan.yearlyPrice : plan.monthlyPrice;
+  const monthlyPrice = plan.monthlyPrice!;
+
   return (
-    <div>
-      <h2 className={`text-h3 ${dark ? "text-white" : "text-ink-900"}`}>{name}</h2>
-      <div className="mt-3 flex items-baseline gap-1">
-        <span className={`text-3xl font-bold ${dark ? "text-white" : "text-ink-900"}`}>
-          {price}
-        </span>
-        {cycle && (
-          <span className={`text-base font-medium ${dark ? "text-white/60" : "text-ink-500"}`}>
-            {cycle}
+    <div className="relative flex h-full w-full flex-col lg:-mt-5">
+      {/* Badge nổi lên trên đỉnh card */}
+      {plan.badge && (
+        <div className="flex justify-center">
+          <span className="relative z-10 -mb-3 inline-flex items-center gap-1.5 rounded-full bg-amber-200 px-3.5 py-1 text-[12px] font-bold text-amber-900 shadow-md">
+            <IStar />
+            {plan.badge}
           </span>
-        )}
-      </div>
-      {saving && (
-        <span className={`mt-1 inline-block text-xs font-semibold ${dark ? "text-green-300" : "text-success"}`}>
-          {saving}
-        </span>
+        </div>
       )}
+
+      <div className="relative flex flex-1 flex-col rounded-2xl bg-gradient-to-b from-cyan-600 via-cyan-700 to-blue-700 p-6 text-white shadow-[0_20px_60px_-10px_rgba(8,145,178,0.5)] transition-transform duration-300 hover:-translate-y-1 lg:pb-8 lg:pt-8">
+        {/* Glow blobs */}
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-white/10 blur-3xl"
+        />
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -bottom-8 -left-8 h-32 w-32 rounded-full bg-cyan-300/20 blur-2xl"
+        />
+
+        {/* Header */}
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/80">
+            {plan.name}
+          </p>
+          <p className="mt-0.5 text-[13px] text-white/80">{plan.tagline}</p>
+        </div>
+
+        {/* Price */}
+        <div className="mt-4">
+          <div className="flex items-end gap-1">
+            <span className="text-[36px] font-extrabold leading-none">
+              {price !== null ? fmt(price) : "Miễn phí"}
+            </span>
+            {price !== null && (
+              <span className="mb-1 text-[14px] text-white/80">/ tháng</span>
+            )}
+          </div>
+          {yearly && price !== null && (
+            <p className="mt-1 text-[12px] text-cyan-200">
+              Tiết kiệm {fmt((monthlyPrice - price) * 12)} / năm
+            </p>
+          )}
+          {!yearly && (
+            <p className="mt-1 text-[12px] text-white/80">
+              hoặc {fmt(plan.yearlyPrice!)} / tháng khi trả năm
+            </p>
+          )}
+        </div>
+
+        <div className="my-5 h-px bg-white/15" />
+
+        {/* Features */}
+        <ul className="flex-1 space-y-3" aria-label={`Tính năng gói ${plan.name}`}>
+          {plan.features.map((f) => (
+            <li key={f.text} className="flex items-start gap-2.5">
+              <ICheck variant="featured" />
+              <span
+                className={`text-[13.5px] ${
+                  f.highlight ? "font-semibold text-white" : "text-white/85"
+                }`}
+              >
+                {f.text}
+              </span>
+            </li>
+          ))}
+        </ul>
+
+        {/* CTA — green để tạo contrast rõ */}
+        <div className="mt-7">
+          <button
+            type="button"
+            onClick={onCta}
+            className="inline-flex h-12 w-full cursor-pointer items-center justify-center rounded-xl bg-emerald-700 text-[14px] font-bold text-white shadow-lg shadow-emerald-700/30 transition-all duration-200 hover:bg-emerald-800 hover:shadow-xl active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-cyan-700"
+          >
+            {plan.cta}
+          </button>
+          {plan.ctaNote && (
+            <p className="mt-2 text-center text-[12px] text-white/80">{plan.ctaNote}</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
-function CheckIcon({ dark = false }: { dark?: boolean }) {
+// ---------------------------------------------------------------------------
+// Premium card (Gia đình)
+// ---------------------------------------------------------------------------
+
+function PremiumCard({
+  plan,
+  yearly,
+  onCta,
+}: {
+  plan: Plan;
+  yearly: boolean;
+  onCta?: () => void;
+}) {
+  const price = yearly ? plan.yearlyPrice : plan.monthlyPrice;
+  const monthlyPrice = plan.monthlyPrice!;
+
   return (
-    <span
-      aria-hidden
-      className={`mt-0.5 grid h-5 w-5 flex-none place-items-center rounded-full ${
-        dark ? "bg-white/15 text-white" : "bg-success-soft text-success"
-      }`}
-    >
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
-        <path d="M5 12l4 4L19 6" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </span>
+    <div className="flex h-full w-full flex-col rounded-2xl border border-teal-100 bg-gradient-to-b from-slate-50 to-teal-50/40 p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-teal-300 hover:shadow-md">
+      {/* Header */}
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-teal-700">
+          {plan.name}
+        </p>
+        <p className="mt-0.5 text-[13px] text-slate-500">{plan.tagline}</p>
+      </div>
+
+      {/* Price */}
+      <div className="mt-4">
+        <div className="flex items-end gap-1">
+          <span className="text-[36px] font-extrabold leading-none text-slate-900">
+            {price !== null ? fmt(price) : "Miễn phí"}
+          </span>
+          {price !== null && (
+            <span className="mb-1 text-[14px] text-slate-500">/ tháng</span>
+          )}
+        </div>
+        {yearly && price !== null && (
+          <p className="mt-1 text-[12px] font-medium text-emerald-600">
+            Tiết kiệm {fmt((monthlyPrice - price) * 12)} / năm
+          </p>
+        )}
+        {!yearly && (
+          <p className="mt-1 text-[12px] text-slate-500">
+            hoặc {fmt(plan.yearlyPrice!)} / tháng khi trả năm
+          </p>
+        )}
+      </div>
+
+      <div className="my-5 h-px bg-teal-100" />
+
+      {/* Features */}
+      <ul className="flex-1 space-y-3" aria-label={`Tính năng gói ${plan.name}`}>
+        {plan.features.map((f) => (
+          <li key={f.text} className="flex items-start gap-2.5">
+            <ICheck variant="premium" />
+            <span
+              className={`text-[13.5px] ${
+                f.highlight ? "font-semibold text-slate-900" : "text-slate-600"
+              }`}
+            >
+              {f.text}
+            </span>
+          </li>
+        ))}
+      </ul>
+
+      {/* CTA */}
+      <div className="mt-7">
+        <button
+          type="button"
+          onClick={onCta}
+          className="inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-xl border-2 border-teal-200 bg-white text-[14px] font-semibold text-teal-700 transition-all duration-200 hover:border-teal-500 hover:bg-teal-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+        >
+          {plan.cta}
+        </button>
+        {plan.ctaNote && (
+          <p className="mt-2 text-center text-[12px] text-slate-500">{plan.ctaNote}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Section
+// ---------------------------------------------------------------------------
+
+export function PricingPlans({ onCta }: { onCta?: () => void }) {
+  const [yearly, setYearly] = useState(false);
+
+  return (
+    <section id="plans" className="bg-gradient-to-b from-slate-50 to-white py-16 lg:py-24">
+      <div className="container-page">
+        {/* ── Billing toggle ── */}
+        <Reveal className="flex justify-center">
+          <BillingToggle yearly={yearly} onChange={setYearly} />
+        </Reveal>
+
+        {/* ── Plan cards ── */}
+        <Reveal
+          as="ul"
+          stagger
+          className="mx-auto mt-10 grid max-w-5xl items-end gap-5 md:grid-cols-2 lg:grid-cols-3"
+        >
+          {PLANS.map((plan, i) => (
+            <li
+              key={plan.id}
+              className="reveal flex"
+              style={{ ["--reveal-i" as any]: i }}
+            >
+              {plan.variant === "featured" ? (
+                <FeaturedCard plan={plan} yearly={yearly} onCta={onCta} />
+              ) : plan.variant === "premium" ? (
+                <PremiumCard plan={plan} yearly={yearly} onCta={onCta} />
+              ) : (
+                <PlainCard plan={plan} onCta={onCta} />
+              )}
+            </li>
+          ))}
+        </Reveal>
+
+        {/* ── Trust signals ── */}
+        <Reveal className="mt-10 flex flex-wrap items-center justify-center gap-6 text-[13px] text-slate-500">
+          {[
+            {
+              icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z",
+              label: "Bảo mật dữ liệu y tế",
+            },
+            {
+              icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z",
+              label: "Không cần thẻ tín dụng",
+            },
+            {
+              icon: "M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15",
+              label: "Huỷ bất cứ lúc nào",
+            },
+          ].map((t) => (
+            <span key={t.label} className="flex items-center gap-1.5">
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+                className="text-emerald-500"
+              >
+                <path
+                  d={t.icon}
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              {t.label}
+            </span>
+          ))}
+        </Reveal>
+
+        {/* ── Bottom note ── */}
+        <Reveal delay={320} className="mt-6 text-center">
+          <p className="text-sm text-slate-500">
+            Tất cả gói trả phí đều có{" "}
+            <strong className="font-semibold text-slate-700">
+              7 ngày dùng thử miễn phí
+            </strong>
+            . Không cần thẻ tín dụng. Huỷ bất cứ lúc nào.
+          </p>
+        </Reveal>
+      </div>
+    </section>
   );
 }

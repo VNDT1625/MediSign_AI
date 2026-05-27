@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../models/communication_mode.dart';
+import 'auth_service.dart' show ApiConfig;
 import 'triage_service.dart';
 
 /// ══════════════════════════════════════════════════════════════
@@ -12,12 +13,19 @@ class RealTriageService implements TriageService {
   late final Dio _dio;
   bool _isReady = false;
 
-  // Backend URL - should be configured via environment
-  static const String _baseUrl = 'http://localhost:8000';
+  // Extract the root server URL (e.g. http://localhost:8000 or http://10.0.2.2:8000)
+  // by stripping the '/api/v1' suffix from ApiConfig.baseUrl.
+  static String get _defaultBaseUrl {
+    final base = ApiConfig.baseUrl;
+    if (base.endsWith('/api/v1')) {
+      return base.substring(0, base.length - '/api/v1'.length);
+    }
+    return base;
+  }
 
   RealTriageService({String? baseUrl}) {
     _dio = Dio(BaseOptions(
-      baseUrl: baseUrl ?? _baseUrl,
+      baseUrl: baseUrl ?? _defaultBaseUrl,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 30),
       headers: {

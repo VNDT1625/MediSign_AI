@@ -5,13 +5,21 @@ import 'package:flutter/material.dart';
 import 'auth_theme.dart';
 import 'login_page.dart';
 import 'register_page.dart';
+import '../../../core/services/auth_service.dart';
 
 /// Welcome screen — Apple-style glassmorphism.
 /// Gradient background + floating orbs → frosted glass logo → title → CTAs.
 class WelcomeAuthPage extends StatefulWidget {
-  const WelcomeAuthPage({super.key, required this.onAuthComplete});
+  const WelcomeAuthPage({
+    super.key,
+    required this.onAuthComplete,
+    required this.authService,
+  });
 
   final VoidCallback onAuthComplete;
+  /// The single [AuthService] instance owned by [MediSignApp].
+  /// Passed down so Login/Register pages mutate the same token store.
+  final AuthService authService;
 
   @override
   State<WelcomeAuthPage> createState() => _WelcomeAuthPageState();
@@ -92,10 +100,13 @@ class _WelcomeAuthPageState extends State<WelcomeAuthPage>
                           icon: Icons.person_add_alt_1_outlined,
                           onPressed: () => _navigateTo(
                             context,
-                            RegisterPage(onAuthComplete: () {
-                              Navigator.of(context).popUntil((route) => route.isFirst);
-                              widget.onAuthComplete();
-                            }),
+                            RegisterPage(
+                              authService: widget.authService,
+                              onAuthComplete: () {
+                                Navigator.of(context).popUntil((route) => route.isFirst);
+                                widget.onAuthComplete();
+                              },
+                            ),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -110,10 +121,13 @@ class _WelcomeAuthPageState extends State<WelcomeAuthPage>
                           icon: Icons.login_rounded,
                           onPressed: () => _navigateTo(
                             context,
-                            LoginPage(onAuthComplete: () {
-                              Navigator.of(context).popUntil((route) => route.isFirst);
-                              widget.onAuthComplete();
-                            }),
+                            LoginPage(
+                              authService: widget.authService,
+                              onAuthComplete: () {
+                                Navigator.of(context).popUntil((route) => route.isFirst);
+                                widget.onAuthComplete();
+                              },
+                            ),
                           ),
                         ),
                         const SizedBox(height: 28),

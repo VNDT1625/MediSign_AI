@@ -1,10 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useVoice } from "@/lib/voice/VoiceContext";
 
-// Bong bóng chào hỏi nổi cạnh bác sĩ ở Hero.
-// Cycle: hiện 10s với 1 kịch bản → tắt 5s → đổi sang kịch bản tiếp theo → lặp lại.
-// 10 kịch bản xoay vòng để hero không bị tĩnh, vẫn cảm giác "bác sĩ đang chào".
+/**
+ * HelloBubble — bong bong chao + mic trigger cho voice control tren home.
+ *
+ * - Khi voice off: xoay vong 10 cau chao (10s hien / 5s tat).
+ * - Khi voice enabled (wake/command/executing): hien text trang thai, bubble
+ *   doi sang "active" (vien xanh + chấm nhấp nháy).
+ * - Click vao bubble = toggle voice (giong pill o cac trang khac).
+ */
 
 const SCENARIOS = [
   "Xin chào!",
@@ -16,72 +22,111 @@ const SCENARIOS = [
   "Đo huyết áp gần đây không?",
   "Có triệu chứng gì lạ không?",
   "Cần giải thích đơn thuốc?",
-  "Hãy kể cho tôi nghe nhé."
+  "Hãy kể cho tôi nghe nhé.",
 ];
 
-const VISIBLE_MS = 10_000; // hiện 10 giây
-const HIDDEN_MS = 5_000; //  tắt 5 giây trước khi đổi kịch bản
+const VISIBLE_MS = 10_000;
+const HIDDEN_MS = 5_000;
 
 export function HelloBubble() {
+  const voice = useVoice();
   const [index, setIndex] = useState(0);
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
-
     if (visible) {
-      // Đang hiện → sau 10s thì ẩn đi
       timer = setTimeout(() => setVisible(false), VISIBLE_MS);
     } else {
-      // Đang tắt → sau 5s thì đổi kịch bản và hiện lại
       timer = setTimeout(() => {
         setIndex((i) => (i + 1) % SCENARIOS.length);
         setVisible(true);
       }, HIDDEN_MS);
     }
-
     return () => clearTimeout(timer);
   }, [visible]);
 
-  return (
-    // Đặt ngay cạnh đầu bác sĩ (giữa trên, hơi lệch phải).
-    // Đuôi bong bóng đặt ở dưới-trái, mũi chĩa xuống dưới-trái về phía bác sĩ.
-    <div className="pointer-events-none absolute left-1/2 top-[8%] z-10 hidden -translate-x-[calc(50%-210px)] -translate-y-[25px] md:block lg:top-[10%] lg:-translate-x-[calc(50%-250px)] lg:-translate-y-[25px]">
-      <div
-        className={`relative flex items-center gap-2.5 rounded-pill bg-white px-5 py-2.5 text-base font-semibold text-ink-900 shadow-card transition-all duration-500 ease-out ${
-          visible
-            ? "scale-100 opacity-100"
-            : "pointer-events-none scale-95 opacity-0"
-        }`}
-      >
-        {/* Icon dấu + tròn xanh ở đầu pill */}
-        <span
-          aria-hidden
-          className="grid h-7 w-7 flex-none place-items-center rounded-full bg-brand text-white"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-            <path
-              d="M12 5v14M5 12h14"
-              stroke="currentColor"
-              strokeWidth="3"
-              strokeLinecap="round"
-            />
-          </svg>
-        </span>
+  // Khi voice on -> luon hien bubble (khong an theo cycle).
+  const enabled = voice?.enabled ?? false;
+  const supported = voice?.isSupported ?? false;
+  const showVoiceState = enabled && voice?.mode !== "off";
 
-        {/*
-          Live region để screen reader đọc câu mới mỗi lần đổi.
-          min-w giữ kích thước pill ổn định khi text dài/ngắn khác nhau.
-        */}
+  const voiceText = (() => {
+    if (!voice) return "";
+    switch (voice.mode) {
+      case "wake": return 'Đang chờ "Bác sĩ ơi"...';
+      case "command": return "Mình đang nghe...";
+      case "executing": return voice.lastReply || "Đang xử lý...";
+      default: return "Đang nghe...";
+    }
+  })();
+
+  const text = showVoiceState ? voiceText : SCENARIOS[index];
+  const bubbleVisible = showVoiceState ? true : visible;
+
+  function onClick() {
+    if (!voice || !supported) return;
+    voice.toggle();
+  }
+
+  if (!voice || !voice.mounted) return null;
+
+  return (
+    <div className="pointer-events-auto absolute left-1/2 top-[8%] z-10 hidden -translate-x-[calc(50%-160px)] -translate-y-[20px] sm:block md:-translate-x-[calc(50%-210px)] md:-translate-y-[25px] lg:top-[10%] lg:-translate-x-[calc(50%-250px)]">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={!supported}
+        aria-label={
+          showVoiceState
+            ? "Đang nghe — bấm để tắt điều khiển bằng giọng nói"
+            : "Bấm để điều khiển web bằng giọng nói"
+        }
+        title={
+          showVoiceState
+            ? 'Đang nghe — bấm để tắt'
+            : supported
+              ? 'Điều khiển web qua giọng nói (bấm để bật)'
+              : 'Trình duyệt không hỗ trợ nhận diện giọng nói'
+        }
+        className={`group relative flex items-center gap-2 rounded-pill px-4 py-2 text-sm font-semibold shadow-card transition-all duration-300 ease-out cursor-pointer sm:gap-2.5 sm:px-5 sm:py-2.5 sm:text-base
+          ${bubbleVisible ? "scale-100 opacity-100" : "pointer-events-none scale-95 opacity-0"}
+          ${showVoiceState
+            ? "bg-rose-50 text-rose-700 ring-2 ring-rose-300 hover:bg-rose-100"
+            : "bg-white text-ink-900 hover:bg-blue-50/80 hover:ring-2 hover:ring-blue-200"}
+          ${!supported ? "opacity-60 cursor-not-allowed" : ""}
+        `}
+      >
+        {/* Text — co min-width de pill khong nhay khi doi cau */}
         <span
           aria-live="polite"
           aria-atomic="true"
-          className="block min-w-[160px] whitespace-nowrap text-center"
+          className="block min-w-[120px] whitespace-nowrap text-center sm:min-w-[160px]"
         >
-          {SCENARIOS[index]}
+          {text}
         </span>
 
-        {/* Đuôi bong bóng — chĩa xuống dưới-trái về phía bác sĩ */}
+        {/* Mic icon o cuoi pill */}
+        <span
+          aria-hidden="true"
+          className={`relative grid h-7 w-7 flex-none place-items-center rounded-full transition-colors
+            ${showVoiceState ? "bg-rose-600 text-white" : "bg-brand text-white group-hover:bg-brand-700"}
+          `}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+            <line x1="12" x2="12" y1="19" y2="22" />
+          </svg>
+          {showVoiceState && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            </span>
+          )}
+        </span>
+
+        {/* Duoi bubble — chia xuong duoi-trai ve phia bac si */}
         <svg
           aria-hidden="true"
           width="24"
@@ -89,9 +134,9 @@ export function HelloBubble() {
           viewBox="0 0 24 16"
           className="pointer-events-none absolute left-6 top-full -mt-px"
         >
-          <path d="M24 0 H4 L0 16 Z" fill="white" />
+          <path d="M24 0 H4 L0 16 Z" fill={showVoiceState ? "#FFF1F2" : "white"} />
         </svg>
-      </div>
+      </button>
     </div>
   );
 }

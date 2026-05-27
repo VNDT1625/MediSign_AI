@@ -9,15 +9,7 @@ export type ConversationItem = {
   unread?: boolean;
 };
 
-export const RECENT_CONVERSATIONS: ConversationItem[] = [
-  { id: "c1", title: "Viêm họng và ho kéo dài", time: "10:24", active: true, unread: true },
-  { id: "c2", title: "Sốt nhẹ và đau đầu", time: "Hôm qua" },
-  { id: "c3", title: "Dinh dưỡng cho người lớn tuổi", time: "Hôm qua" },
-  { id: "c4", title: "Đau cổ tay khi ấn cây", time: "2 ngày trước" },
-  { id: "c5", title: "Tư vấn thuốc cảm cúm", time: "3 ngày trước" },
-  { id: "c6", title: "Tập thể dục cho người cao tuổi", time: "5 ngày trước" },
-  { id: "c7", title: "Kiểm tra sức khỏe định kỳ", time: "7 ngày trước" }
-];
+export const RECENT_CONVERSATIONS: ConversationItem[] = [];
 
 export type CommMode = "text" | "voice" | "click" | "sign";
 
@@ -61,7 +53,6 @@ export const QUICK_REPLIES: QuickReply[] = [
   { id: "q3", icon: "stethoscope", label: "Khi nào cần đi khám?" }
 ];
 
-// Dữ liệu hội thoại mẫu — nguyên văn theo ảnh thiết kế.
 export type ChatMessage =
   | {
       id: string;
@@ -98,64 +89,96 @@ export type ChatMessage =
       time: string;
     };
 
-export const MESSAGES: ChatMessage[] = [
-  {
-    id: "m1",
-    role: "user",
-    kind: "text",
-    text: "Chào MediSign AI, tôi bị đau họng và ho khan 2 ngày nay, nuốt vướng và rất khó chịu. Tôi nên làm gì?",
-    time: "10:24",
-    seen: true
-  },
-  {
-    id: "m2",
-    role: "ai",
-    kind: "text",
-    text: "Chào bạn Minh An, cảm ơn bạn đã chia sẻ về triệu chứng. Dựa trên mô tả ban đầu, đây có thể là viêm họng do virus. Để đánh giá chính xác hơn, bạn có thể cung cấp thêm thông tin:",
-    bullets: [
-      "Nhiệt độ cơ thể hiện tại là bao nhiêu (°C)?",
-      "Có đau đầu, mệt mỏi hoặc nổi hạch cổ không?",
-      "Đã sử dụng thuốc hoặc biện pháp nào chưa?",
-      "Tiền sử dị ứng hoặc bệnh lý nền (nếu có)?"
-    ],
-    time: "10:24"
-  },
-  {
-    id: "m3",
-    role: "user",
-    kind: "text",
-    text: "Tôi sốt 37.8°C, hơi mệt, không nổi hạch. Tôi đã ngậm muối ấm. Đây là kết quả X-quang phổi tuần trước.",
-    time: "10:27",
-    seen: true
-  },
-  {
-    id: "m4",
-    role: "user",
-    kind: "image",
-    file: { name: "Xquang_phoi_07052025.jpg", size: "327 KB" },
-    time: "10:27",
-    seen: true
-  },
-  {
-    id: "m5",
-    role: "ai",
-    kind: "analysis",
-    intro: "Cảm ơn bạn đã cung cấp thêm thông tin và hình ảnh. Dưới đây là phân tích sơ bộ:",
-    assessment: [
-      { label: "Nhiệt độ:", value: "37.8°C (sốt nhẹ)" },
-      { label: "Triệu chứng:", value: "Đau họng, ho khan, mệt nhẹ" },
-      { label: "X-quang phổi:", value: "Không thấy tổn thương rõ ràng, phổi thông khí tốt" }
-    ],
-    handling: [
-      "Nghỉ ngơi, uống nhiều nước ấm.",
-      "Có thể dùng Paracetamol nếu sốt cao.",
-      "Súc họng bằng nước muối ấm 2–3 lần/ngày.",
-      "Theo dõi thêm 1–2 ngày."
-    ],
-    note: {
-      text: "Lưu ý: Đây không phải là chẩn đoán cuối cùng. Nếu sốt cao >38.5°C, khó thở, đau họng kéo dài không đỡ, hãy đi khám sớm.",
-      time: "10:30"
-    },
-    time: "10:30"
-  }
+export const MESSAGES: ChatMessage[] = [];
+
+// ---------------------------------------------------------------------------
+// BODY_REGIONS — dùng cho ClickMode: bản đồ vùng cơ thể trên SVG/3D model.
+// Mỗi region được click → có 3 mức nhẹ/vừa/nặng (multi-select). Khi user
+// bấm "Gửi", composer ghép 1 câu tiếng Việt rồi gọi /ai/chat như text bình
+// thường, không cần backend mới.
+// ---------------------------------------------------------------------------
+
+export type BodyRegionId =
+  | "head"
+  | "throat"
+  | "chest"
+  | "abdomen"
+  | "back"
+  | "arm_left"
+  | "arm_right"
+  | "leg_left"
+  | "leg_right";
+
+export type BodyRegion = {
+  id: BodyRegionId;
+  /** Tên hiển thị tiếng Việt. */
+  label: string;
+  /** Cụm dùng trong câu gửi AI. Ví dụ: "đầu", "ngực". */
+  phrase: string;
+};
+
+export const BODY_REGIONS: BodyRegion[] = [
+  { id: "head",      label: "Đầu",        phrase: "đầu" },
+  { id: "throat",    label: "Cổ / họng",  phrase: "cổ và họng" },
+  { id: "chest",     label: "Ngực",       phrase: "ngực" },
+  { id: "abdomen",   label: "Bụng",       phrase: "bụng" },
+  { id: "back",      label: "Lưng",       phrase: "lưng" },
+  { id: "arm_left",  label: "Tay trái",   phrase: "tay trái" },
+  { id: "arm_right", label: "Tay phải",   phrase: "tay phải" },
+  { id: "leg_left",  label: "Chân trái",  phrase: "chân trái" },
+  { id: "leg_right", label: "Chân phải",  phrase: "chân phải" }
 ];
+
+export type PainLevel = "mild" | "moderate" | "severe";
+
+export const PAIN_LEVELS: { id: PainLevel; label: string; phrase: string }[] = [
+  { id: "mild",     label: "Nhẹ",  phrase: "nhẹ" },
+  { id: "moderate", label: "Vừa", phrase: "vừa" },
+  { id: "severe",   label: "Nặng", phrase: "nặng" }
+];
+
+// ---------------------------------------------------------------------------
+// SIGN_PHRASES — dùng cho SignMode khi user chưa có model nhận diện video
+// VSL. Người câm/điếc chạm vào nút phrase để ghép thành câu, rồi gửi.
+// Khi có model VSL thật, frames camera sẽ được gửi qua WebSocket; bộ phrase
+// dưới đây vẫn dùng làm fallback.
+// ---------------------------------------------------------------------------
+
+export type SignPhrase = { id: string; label: string; text: string };
+
+export const SIGN_PHRASES: SignPhrase[] = [
+  { id: "fever",    label: "Sốt",       text: "Tôi bị sốt" },
+  { id: "headache", label: "Đau đầu",   text: "Tôi bị đau đầu" },
+  { id: "cough",    label: "Ho",        text: "Tôi bị ho" },
+  { id: "sore",     label: "Đau họng",  text: "Tôi bị đau họng" },
+  { id: "stomach",  label: "Đau bụng",  text: "Tôi bị đau bụng" },
+  { id: "chest",    label: "Đau ngực",  text: "Tôi bị đau ngực" },
+  { id: "mild",     label: "Nhẹ",       text: "ở mức nhẹ" },
+  { id: "severe",   label: "Nặng",      text: "ở mức nặng" },
+  { id: "today",    label: "Hôm nay",   text: "từ hôm nay" },
+  { id: "2days",    label: "2 ngày",    text: "khoảng 2 ngày" },
+  { id: "advice",   label: "Lời khuyên", text: "Tôi cần lời khuyên" },
+  { id: "doctor",   label: "Đi khám",   text: "Tôi nên đi khám không?" }
+];
+
+// ---------------------------------------------------------------------------
+// OUTPUT_MODES — cách AI trả lời lại user (độc lập với CommMode = input).
+// Chỉ có 3 giá trị; mặc định mirror theo input. Cho phép kết hợp như:
+//   • input "voice" + output "text" (nói nhưng đọc câu trả lời thay vì nghe)
+//   • input "click" + output "sign"  (chọn vùng đau, xem avatar diễn ký hiệu)
+// ---------------------------------------------------------------------------
+
+export type OutputMode = "text" | "voice" | "sign";
+
+export const OUTPUT_MODES: { id: OutputMode; label: string; hint: string }[] = [
+  { id: "text",  label: "Văn bản",  hint: "Bubble chữ và bullets như thông thường." },
+  { id: "voice", label: "Đọc to",   hint: "Tự đọc câu trả lời bằng giọng tiếng Việt." },
+  { id: "sign",  label: "Ký hiệu",  hint: "Avatar diễn lại ý chính bằng ngôn ngữ ký hiệu." }
+];
+
+/** Mặc định mirror input → output gần nhất có thể. Click không có output riêng → text. */
+export function defaultOutputFor(mode: CommMode): OutputMode {
+  if (mode === "voice") return "voice";
+  if (mode === "sign") return "sign";
+  return "text"; // text & click
+}

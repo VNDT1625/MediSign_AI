@@ -8,9 +8,16 @@ import '../../../core/services/auth_service.dart';
 /// Register page — Apple-style glassmorphism.
 /// Gradient bg → glass form card → frosted inputs → glass checkboxes → CTA.
 class RegisterPage extends StatefulWidget {
-  const RegisterPage({super.key, required this.onAuthComplete});
+  const RegisterPage({
+    super.key,
+    required this.onAuthComplete,
+    required this.authService,
+  });
 
   final VoidCallback onAuthComplete;
+
+  /// Shared [AuthService] instance from root — must NOT create a new one here.
+  final AuthService authService;
 
   @override
   State<RegisterPage> createState() => _RegisterPageState();
@@ -103,9 +110,10 @@ class _RegisterPageState extends State<RegisterPage> {
 
     setState(() => _isLoading = true);
 
-    // Use AuthService
-    final authService = AuthService();
-    final result = await authService.register(
+    // Use the shared AuthService instance passed from root (app.dart).
+    // Do NOT create AuthService() here — that would be a separate instance
+    // with its own token store, leaving _auth in app.dart with null tokens.
+    final result = await widget.authService.register(
       email: _emailCtrl.text.trim(),
       phone: _phoneCtrl.text.trim(),
       username: _emailCtrl.text.trim().split('@').first,
@@ -118,7 +126,8 @@ class _RegisterPageState extends State<RegisterPage> {
     setState(() => _isLoading = false);
 
     if (result.success) {
-      // Navigate to OTP verification
+      // Navigate to OTP verification. The shared auth state has already been
+      // updated by widget.authService.register().
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => VerifyOtpPage(

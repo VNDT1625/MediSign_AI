@@ -206,7 +206,8 @@ describe("AuthProvider — actions", () => {
     // Capture the `login` and `state` from a probe.
     type Captured = {
       state: { status: string };
-      login: (input: unknown) => Promise<void>;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      login: (input: any) => Promise<void>;
     } | null;
     const captured: { current: Captured } = { current: null };
     function ActionProbe() {

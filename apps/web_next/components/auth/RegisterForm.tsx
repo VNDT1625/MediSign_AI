@@ -29,13 +29,13 @@ export type RegisterFormServerErrors = Partial<
 const inputWrap = "relative flex items-center";
 
 const input =
-  "h-11 w-full rounded-xl border border-slate-200 bg-white/90 pl-10 pr-3 text-[14px] text-slate-900 placeholder:text-slate-400 shadow-sm transition-all duration-200 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:shadow-md";
+  "h-11 w-full border-0 border-b-2 border-slate-300 bg-transparent pl-8 pr-3 text-[14px] text-slate-900 placeholder:text-slate-400 transition-all duration-200 focus:border-brand focus:outline-none focus:ring-0";
 
 const inputErr =
-  "h-11 w-full rounded-xl border border-red-400 bg-white/90 pl-10 pr-3 text-[14px] text-slate-900 placeholder:text-slate-400 shadow-sm transition-all duration-200 focus:border-red-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20";
+  "h-11 w-full border-0 border-b-2 border-red-400 bg-transparent pl-8 pr-3 text-[14px] text-slate-900 placeholder:text-slate-400 transition-all duration-200 focus:border-red-500 focus:outline-none focus:ring-0";
 
 const iconPos =
-  "pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400";
+  "pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 text-slate-400";
 
 const label = "mb-1.5 block text-[13px] font-semibold text-slate-700";
 

@@ -378,17 +378,17 @@ export function AvatarMenu({ user, onLogout }: AvatarMenuProps) {
           <Link
             ref={firstItemRef}
             role="menuitem"
-            href="/app"
+            href="/chat"
             onClick={close}
             className="flex items-center gap-3 rounded-card px-3 py-2 text-[14px] font-medium text-ink-900 transition-colors duration-150 cursor-pointer hover:bg-ink-100 focus-visible:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 motion-reduce:transition-none"
           >
             <HomeIcon className="h-5 w-5 flex-none text-ink-600" />
-            <span>Trang chủ ứng dụng</span>
+            <span>Mở Chat AI</span>
           </Link>
 
           <Link
             role="menuitem"
-            href="/app/profile"
+            href="/profile"
             onClick={close}
             className="flex items-center gap-3 rounded-card px-3 py-2 text-[14px] font-medium text-ink-900 transition-colors duration-150 cursor-pointer hover:bg-ink-100 focus-visible:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-1 motion-reduce:transition-none"
           >

@@ -134,7 +134,7 @@ export function WhyChooseSection() {
         </Reveal>
 
         {/* pt-20 để chừa khoảng cho phần ảnh tràn lên đỉnh card */}
-        <ul className="mx-auto mt-12 grid max-w-6xl gap-6 pt-20 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
+        <ul className="mx-auto mt-12 grid max-w-6xl gap-8 pt-16 sm:grid-cols-2 sm:pt-20 lg:grid-cols-4 lg:gap-5 2xl:max-w-7xl 2xl:gap-7">
           {ITEMS.map((it, i) => {
             const tone = TONE_CLASSES[it.tone];
             return (
@@ -145,10 +145,10 @@ export function WhyChooseSection() {
                 className="relative"
               >
                 <article
-                  className={`group relative h-full overflow-visible rounded-card border border-ink-200 bg-gradient-to-b ${tone.stage} px-6 pb-6 pt-32 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-card`}
+                  className={`group relative h-full overflow-visible rounded-card border border-ink-200 bg-gradient-to-b ${tone.stage} px-5 pb-5 pt-28 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-brand/40 hover:shadow-card sm:px-6 sm:pb-6 sm:pt-32`}
                 >
                   {/* Vùng "stage" pop-out — nhân vật nhô lên khỏi card */}
-                  <div className="pointer-events-none absolute inset-x-0 -top-20 flex h-44 items-end justify-center">
+                  <div className="pointer-events-none absolute inset-x-0 -top-16 flex h-36 items-end justify-center sm:-top-20 sm:h-44">
                     {/* Soft glow phía sau nhân vật */}
                     <span
                       aria-hidden
@@ -161,7 +161,7 @@ export function WhyChooseSection() {
                         src={it.image}
                         alt={it.imageAlt || ""}
                         loading="lazy"
-                        className="relative h-44 w-auto select-none object-contain drop-shadow-[0_18px_18px_rgba(15,23,42,0.18)] transition-transform duration-500 ease-out group-hover:-translate-y-2 group-hover:scale-[1.04]"
+                        className="relative h-36 w-auto select-none object-contain drop-shadow-[0_18px_18px_rgba(15,23,42,0.18)] transition-transform duration-500 ease-out group-hover:-translate-y-2 group-hover:scale-[1.04] sm:h-44"
                         draggable={false}
                       />
                     ) : (

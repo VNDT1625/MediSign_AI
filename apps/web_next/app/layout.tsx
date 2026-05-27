@@ -23,24 +23,37 @@ export const metadata: Metadata = {
   }
 };
 
+// Viewport phải tách riêng theo Next 14+ — đảm bảo mobile rendering
+// dùng width=device-width và cho phép user zoom (a11y).
+export const viewport: import("next").Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: "#0EA5A5"
+};
+
 export default function RootLayout({
   children
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <html lang="vi" className={inter.variable}>
+    <html lang="vi" className={inter.variable} suppressHydrationWarning>
       <head>
         {/*
           Preload video Login với priority cao — browser bắt đầu fetch ngay
           khi tải trang chủ, nên lần đầu user click "Tạo tài khoản" video
-          đã có sẵn trong cache, không bị lag decode/network.
+          đã có sẵn trong cache.
+          Dùng `as="fetch"` thay vì `as="video"` vì Chrome chưa hỗ trợ
+          `as="video"` cho `<link rel="preload">` — sẽ raise warning
+          "unsupported as value". `crossOrigin` cần khớp với request thật.
         */}
         <link
           rel="preload"
-          as="video"
+          as="fetch"
           type="video/mp4"
           href="https://pub-9e85fcdc5e564734ac6f665ff3f54bf0.r2.dev/kling_20260516_%E4%BD%9C%E5%93%81_The_camera_4212_0%20(1).mp4"
+          crossOrigin="anonymous"
         />
         {/* Hint cho browser kết nối sớm tới R2 origin */}
         <link
@@ -49,7 +62,7 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <a href="#main" className="skip-link">
           Bỏ qua đến nội dung chính
         </a>

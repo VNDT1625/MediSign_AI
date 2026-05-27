@@ -20,10 +20,25 @@ const config: Config = {
         },
         accent: {
           DEFAULT: "#F97316", // Cam accent chính
-          soft: "#FFEDD5"
+          soft: "#FFEDD5",
+          // Accessible variants (WCAG AA ≥ 4.5:1)
+          700: "#C2410C", // 4.52:1 on white
+          800: "#9A3412"  // 7.54:1 on white and #FFEDD5
         },
-        success: { DEFAULT: "#22C55E", soft: "#DCFCE7" },
-        warn: { DEFAULT: "#F59E0B", soft: "#FEF3C7" },
+        success: {
+          DEFAULT: "#22C55E",
+          soft: "#DCFCE7",
+          // Accessible variants (WCAG AA ≥ 4.5:1)
+          700: "#15803D", // 4.54:1 on white
+          800: "#166534", // 5.74:1 on white
+          900: "#14532D"  // 8.59:1 on white and #DCFCE7
+        },
+        warn: {
+          DEFAULT: "#F59E0B",
+          soft: "#FEF3C7",
+          // Accessible variants (WCAG AA ≥ 4.5:1)
+          800: "#92400E"  // 7.20:1 on white
+        },
         danger: { DEFAULT: "#DC2626", soft: "#FEE2E2" },
         ink: {
           900: "#0F172A",
@@ -58,7 +73,12 @@ const config: Config = {
         focus: "0 0 0 3px rgba(2,132,199,0.25)"
       },
       maxWidth: {
-        page: "1280px"
+        page: "1280px",
+        "page-xl": "1440px"
+      },
+      screens: {
+        "2xl": "1536px",
+        "3xl": "1920px"
       },
       animation: {
         "fade-up": "fadeUp 400ms cubic-bezier(0.4,0,0.2,1) both",

@@ -109,11 +109,11 @@ def test_ensure_disclaimer_handles_empty_output() -> None:
 # 1.4 Train/eval split — ratios, determinism, no overlap
 # ---------------------------------------------------------------------------
 
-def test_split_ratios_are_90_10_within_rounding() -> None:
+def test_split_ratios_are_85_15_within_rounding() -> None:
     records = _make_records(1000)
-    train, eval_ = fmd.split_train_eval(records, train_ratio=0.9, seed=42)
-    assert len(train) == 900
-    assert len(eval_) == 100
+    train, eval_ = fmd.split_train_eval(records, train_ratio=0.85, seed=42)
+    assert len(train) == 850
+    assert len(eval_) == 150
     assert len(train) + len(eval_) == len(records)
 
 
@@ -186,14 +186,14 @@ def test_format_dataset_writes_train_eval_and_stats(tmp_path: Path) -> None:
         train_file=train_file,
         eval_file=eval_file,
         stats_file=stats_file,
-        train_ratio=0.9,
+        train_ratio=0.85,
         seed=42,
     )
 
     train_lines = train_file.read_text(encoding="utf-8").strip().splitlines()
     eval_lines = eval_file.read_text(encoding="utf-8").strip().splitlines()
-    assert len(train_lines) == stats["train"] == 45
-    assert len(eval_lines) == stats["eval"] == 5
+    assert len(train_lines) == stats["train"] == 42
+    assert len(eval_lines) == stats["eval"] == 8
     assert stats["total"] == 50
     assert stats["disclaimer_added"] + stats["disclaimer_already_present"] == 50
 
@@ -223,7 +223,7 @@ def test_format_dataset_is_byte_identical_across_runs(tmp_path: Path) -> None:
             train_file=out_dir / "train.jsonl",
             eval_file=out_dir / "eval.jsonl",
             stats_file=out_dir / "stats.json",
-            train_ratio=0.9,
+            train_ratio=0.85,
             seed=42,
         )
         return (

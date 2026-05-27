@@ -51,7 +51,7 @@ export function DownloadQR() {
             {/* Trust microcopy */}
             <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-ink-600">
               <span className="inline-flex items-center gap-2">
-                <span className="grid h-6 w-6 place-items-center rounded-pill bg-success/15 text-success">
+                <span className="grid h-6 w-6 place-items-center rounded-pill bg-success/15 text-emerald-800">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                     <path
                       d="M12 3l8 3v6c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V6l8-3z"
@@ -156,7 +156,7 @@ export function DownloadQR() {
               <div className="mt-3 flex items-center justify-center gap-2 text-[11px]">
                 <span className="rounded-pill bg-ink-100 px-2 py-0.5 text-ink-600">iOS</span>
                 <span className="rounded-pill bg-ink-100 px-2 py-0.5 text-ink-600">Android</span>
-                <span className="rounded-pill bg-success/15 px-2 py-0.5 text-success">
+                <span className="rounded-pill bg-success/15 px-2 py-0.5 text-emerald-800">
                   An toàn
                 </span>
               </div>

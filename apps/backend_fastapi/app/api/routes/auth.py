@@ -16,6 +16,8 @@ from app.schemas.auth import (
     AuthRegisterResponse,
     AuthUserResponse,
     ChangePasswordRequest,
+    PasswordResetRequest,
+    PasswordResetConfirm,
 )
 from app.services.auth_service import (
     login,
@@ -23,13 +25,21 @@ from app.services.auth_service import (
     register,
     logout,
     change_password,
+    request_password_reset,
+    confirm_password_reset,
 )
 from app.core.dependencies import get_current_user
+from app.core.rate_limit import (
+    rate_limit_forgot_password,
+    rate_limit_login,
+    rate_limit_register,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=AuthRegisterResponse)
+@rate_limit_register()
 def register_route(payload: AuthRegisterRequest, request: Request, db: Session = Depends(get_db)):
     """Register new user account"""
     result = register(payload, db, request.client.host if request.client else None)
@@ -37,6 +47,7 @@ def register_route(payload: AuthRegisterRequest, request: Request, db: Session =
 
 
 @router.post("/login", response_model=AuthLoginResponse)
+@rate_limit_login()
 def login_route(payload: AuthLoginRequest, request: Request, db: Session = Depends(get_db)):
     """Login with email or phone"""
     result = login(payload, db, request.client.host if request.client else None)
@@ -69,3 +80,17 @@ def change_password_route(
 def get_me_route(current_user: User = Depends(get_current_user)):
     """Get current user info"""
     return current_user
+
+
+@router.post("/forgot-password")
+@rate_limit_forgot_password()
+def forgot_password_route(payload: PasswordResetRequest, request: Request, db: Session = Depends(get_db)):
+    """Yêu cầu đặt lại mật khẩu — gửi email chứa link reset."""
+    return request_password_reset(payload.email, db)
+
+
+@router.post("/reset-password")
+@rate_limit_forgot_password()
+def reset_password_route(payload: PasswordResetConfirm, request: Request, db: Session = Depends(get_db)):
+    """Xác nhận token và đặt mật khẩu mới."""
+    return confirm_password_reset(payload.token, payload.new_password, db)

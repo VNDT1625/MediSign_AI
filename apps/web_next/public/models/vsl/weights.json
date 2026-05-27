@@ -1,0 +1,208 @@
+{
+  "format": "medisign-vsl-weights-v1",
+  "dtype": "float32",
+  "weights": [
+    {
+      "name": "sequential/bidirectional/forward_lstm/lstm_cell/kernel",
+      "shape": [
+        126,
+        256
+      ],
+      "offset": 0,
+      "length": 129024
+    },
+    {
+      "name": "sequential/bidirectional/forward_lstm/lstm_cell/recurrent_kernel",
+      "shape": [
+        64,
+        256
+      ],
+      "offset": 129024,
+      "length": 65536
+    },
+    {
+      "name": "sequential/bidirectional/forward_lstm/lstm_cell/bias",
+      "shape": [
+        256
+      ],
+      "offset": 194560,
+      "length": 1024
+    },
+    {
+      "name": "sequential/bidirectional/backward_lstm/lstm_cell/kernel",
+      "shape": [
+        126,
+        256
+      ],
+      "offset": 195584,
+      "length": 129024
+    },
+    {
+      "name": "sequential/bidirectional/backward_lstm/lstm_cell/recurrent_kernel",
+      "shape": [
+        64,
+        256
+      ],
+      "offset": 324608,
+      "length": 65536
+    },
+    {
+      "name": "sequential/bidirectional/backward_lstm/lstm_cell/bias",
+      "shape": [
+        256
+      ],
+      "offset": 390144,
+      "length": 1024
+    },
+    {
+      "name": "sequential/batch_normalization/gamma",
+      "shape": [
+        128
+      ],
+      "offset": 391168,
+      "length": 512
+    },
+    {
+      "name": "sequential/batch_normalization/beta",
+      "shape": [
+        128
+      ],
+      "offset": 391680,
+      "length": 512
+    },
+    {
+      "name": "sequential/bidirectional_1/forward_lstm_1/lstm_cell/kernel",
+      "shape": [
+        128,
+        128
+      ],
+      "offset": 392192,
+      "length": 65536
+    },
+    {
+      "name": "sequential/bidirectional_1/forward_lstm_1/lstm_cell/recurrent_kernel",
+      "shape": [
+        32,
+        128
+      ],
+      "offset": 457728,
+      "length": 16384
+    },
+    {
+      "name": "sequential/bidirectional_1/forward_lstm_1/lstm_cell/bias",
+      "shape": [
+        128
+      ],
+      "offset": 474112,
+      "length": 512
+    },
+    {
+      "name": "sequential/bidirectional_1/backward_lstm_1/lstm_cell/kernel",
+      "shape": [
+        128,
+        128
+      ],
+      "offset": 474624,
+      "length": 65536
+    },
+    {
+      "name": "sequential/bidirectional_1/backward_lstm_1/lstm_cell/recurrent_kernel",
+      "shape": [
+        32,
+        128
+      ],
+      "offset": 540160,
+      "length": 16384
+    },
+    {
+      "name": "sequential/bidirectional_1/backward_lstm_1/lstm_cell/bias",
+      "shape": [
+        128
+      ],
+      "offset": 556544,
+      "length": 512
+    },
+    {
+      "name": "sequential/batch_normalization_1/gamma",
+      "shape": [
+        64
+      ],
+      "offset": 557056,
+      "length": 256
+    },
+    {
+      "name": "sequential/batch_normalization_1/beta",
+      "shape": [
+        64
+      ],
+      "offset": 557312,
+      "length": 256
+    },
+    {
+      "name": "sequential/dense/kernel",
+      "shape": [
+        64,
+        32
+      ],
+      "offset": 557568,
+      "length": 8192
+    },
+    {
+      "name": "sequential/dense/bias",
+      "shape": [
+        32
+      ],
+      "offset": 565760,
+      "length": 128
+    },
+    {
+      "name": "sequential/output_gesture/kernel",
+      "shape": [
+        32,
+        10
+      ],
+      "offset": 565888,
+      "length": 1280
+    },
+    {
+      "name": "sequential/output_gesture/bias",
+      "shape": [
+        10
+      ],
+      "offset": 567168,
+      "length": 40
+    },
+    {
+      "name": "sequential/batch_normalization/moving_mean",
+      "shape": [
+        128
+      ],
+      "offset": 567208,
+      "length": 512
+    },
+    {
+      "name": "sequential/batch_normalization/moving_variance",
+      "shape": [
+        128
+      ],
+      "offset": 567720,
+      "length": 512
+    },
+    {
+      "name": "sequential/batch_normalization_1/moving_mean",
+      "shape": [
+        64
+      ],
+      "offset": 568232,
+      "length": 256
+    },
+    {
+      "name": "sequential/batch_normalization_1/moving_variance",
+      "shape": [
+        64
+      ],
+      "offset": 568488,
+      "length": 256
+    }
+  ]
+}

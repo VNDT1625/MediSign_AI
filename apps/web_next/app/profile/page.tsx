@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { SiteHeader } from "@/components/SiteHeader";
 import { LoginModal } from "@/components/LoginModal";
 import { Footer } from "@/components/sections/Footer";
@@ -10,15 +11,32 @@ import { ProfileStats } from "@/components/profile/ProfileStats";
 import { ProfilePersonalInfo } from "@/components/profile/ProfilePersonalInfo";
 import { ProfileJourney } from "@/components/profile/ProfileJourney";
 import { ProfileSettings } from "@/components/profile/ProfileSettings";
+import { ChangePasswordCard } from "@/components/profile/ChangePasswordCard";
+import { useAuth } from "@/lib/auth/useAuth";
 
 export default function ProfilePage() {
   const [loginOpen, setLoginOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { state, logout } = useAuth();
+  const router = useRouter();
+
+  async function handleLogout() {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } catch {
+      // Logout là best-effort: kể cả khi server lỗi vẫn quay về public site.
+    } finally {
+      router.push("/");
+    }
+  }
 
   return (
     <>
       <SiteHeader onLoginClick={() => setLoginOpen(true)} />
 
-      <main id="main" className="bg-ink-100/40 pt-24 pb-16 lg:pt-28 lg:pb-20">
+      <main id="main" className="bg-ink-100/40 pt-20 pb-12 sm:pt-24 sm:pb-16 lg:pt-28 lg:pb-20">
         <div className="container-page">
           <ProfileHeader />
 
@@ -28,11 +46,17 @@ export default function ProfilePage() {
               <ProfileCard />
               <ProfileStats />
               <ProfilePersonalInfo />
+              <ChangePasswordCard />
               <ProfileJourney />
 
               <button
                 type="button"
-                className="flex w-full items-center justify-center gap-2 rounded-card border border-danger/40 bg-danger/5 px-6 py-3.5 text-base font-semibold text-danger hover:bg-danger/10 cursor-pointer"
+                onClick={handleLogout}
+                disabled={
+                  isLoggingOut || state.status !== "authenticated"
+                }
+                aria-busy={isLoggingOut ? "true" : "false"}
+                className="flex w-full items-center justify-center gap-2 rounded-card border border-danger/40 bg-danger/5 px-6 py-3.5 text-base font-semibold text-danger hover:bg-danger/10 cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path
@@ -43,7 +67,7 @@ export default function ProfilePage() {
                     strokeLinejoin="round"
                   />
                 </svg>
-                Đăng xuất
+                {isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
               </button>
             </div>
 

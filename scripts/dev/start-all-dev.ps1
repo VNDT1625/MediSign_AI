@@ -12,4 +12,4 @@ Start-Process powershell -ArgumentList "-NoExit", "-ExecutionPolicy", "Bypass", 
 Write-Host "Started 3 dev servers:"
 Write-Host "1. MedGemma:   http://localhost:8080/health"
 Write-Host "2. Backend:    http://localhost:8000/api/v1/ai/status"
-Write-Host "3. Web:        http://localhost:3000/app/chat"
+Write-Host "3. Web:        http://localhost:3000/"

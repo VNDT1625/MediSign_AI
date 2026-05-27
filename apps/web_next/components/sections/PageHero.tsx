@@ -35,7 +35,7 @@ export function PageHero({
     layout === "balanced" ? "lg:col-span-6" : "lg:col-span-5";
 
   return (
-    <section className="relative isolate overflow-hidden pt-28 pb-16 lg:pt-32 lg:pb-20">
+    <section className="relative isolate overflow-hidden pt-24 pb-12 sm:pt-28 sm:pb-16 lg:pt-32 lg:pb-20 2xl:pt-36 2xl:pb-24">
       {/* Background gradient mềm mại */}
       <div
         aria-hidden="true"
@@ -61,7 +61,7 @@ export function PageHero({
       />
 
       <div className="container-page">
-        <div className="grid items-center gap-10 lg:grid-cols-12 lg:gap-12">
+        <div className="grid items-center gap-8 sm:gap-10 lg:grid-cols-12 lg:gap-12 2xl:gap-16">
           <Reveal className={textCol}>
             {eyebrow && (
               <span className="inline-flex items-center gap-2 rounded-pill bg-white px-4 py-1.5 text-xs font-semibold uppercase tracking-wide text-brand-700 shadow-soft">
@@ -69,7 +69,7 @@ export function PageHero({
                 {eyebrow}
               </span>
             )}
-            <h1 className="mt-4 text-[clamp(36px,5vw,56px)] font-extrabold leading-[1.05] tracking-tight text-ink-900">
+            <h1 className="mt-4 text-[clamp(28px,5vw,56px)] font-extrabold leading-[1.08] tracking-tight text-ink-900 sm:leading-[1.05]">
               {title}
             </h1>
             {description && (

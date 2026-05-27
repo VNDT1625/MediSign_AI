@@ -14,7 +14,7 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
-from app.database.cloud_models import User, UserSession
+from app.database.cloud_models import User, UserSession, PasswordReset
 from app.schemas.auth import (
     AuthLoginRequest,
     AuthRegisterRequest,
@@ -23,14 +23,31 @@ from app.schemas.auth import (
     AuthLoginResponse,
     AuthRegisterResponse,
 )
+from app.services.email_service import send_password_reset_email
+
+# Password reset token expiry
+PASSWORD_RESET_EXPIRE_MINUTES = 30
 
 # Token expiry
 ACCESS_TOKEN_EXPIRE_MINUTES = 60  # 1 hour
 REFRESH_TOKEN_EXPIRE_DAYS = 30  # 30 days
 
 
+def _normalize_phone(phone: str) -> str:
+    """Normalize VN phone number to 0xxxxxxxxx format.
+    Converts +84xxxxxxxxx → 0xxxxxxxxx, strips spaces/dashes.
+    """
+    phone = phone.strip().replace(" ", "").replace("-", "")
+    if phone.startswith("+84"):
+        phone = "0" + phone[3:]
+    return phone
+
+
 def register(payload: AuthRegisterRequest, db: Session, ip_address: str = None) -> AuthRegisterResponse:
     """Register new user account"""
+
+    # Normalize phone number format (+84 → 0)
+    normalized_phone = _normalize_phone(payload.phone)
 
     # Check if email exists
     existing_email = db.query(User).filter(User.email == payload.email.lower()).first()
@@ -49,8 +66,8 @@ def register(payload: AuthRegisterRequest, db: Session, ip_address: str = None) 
         )
 
     # Check if phone exists (if provided)
-    if payload.phone:
-        existing_phone = db.query(User).filter(User.phone == payload.phone).first()
+    if normalized_phone:
+        existing_phone = db.query(User).filter(User.phone == normalized_phone).first()
         if existing_phone:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -61,7 +78,7 @@ def register(payload: AuthRegisterRequest, db: Session, ip_address: str = None) 
     user = User(
         id=str(uuid.uuid4()),
         email=payload.email.lower(),
-        phone=payload.phone,
+        phone=normalized_phone,
         username=payload.username.lower(),
         full_name=payload.full_name,
         password_hash=hash_password(payload.password),
@@ -93,7 +110,8 @@ def login(payload: AuthLoginRequest, db: Session, ip_address: str = None) -> Aut
     if payload.email:
         user = db.query(User).filter(User.email == payload.email.lower()).first()
     elif payload.phone:
-        user = db.query(User).filter(User.phone == payload.phone).first()
+        normalized_phone = _normalize_phone(payload.phone)
+        user = db.query(User).filter(User.phone == normalized_phone).first()
 
     if not user or not verify_password(payload.password, user.password_hash):
         raise HTTPException(
@@ -250,3 +268,90 @@ def _user_to_response(user: User) -> AuthUserResponse:
         account_type=user.account_type,
         created_at=user.created_at,
     )
+
+
+def request_password_reset(email: str, db: Session) -> dict:
+    """Tạo token đặt lại mật khẩu và gửi email.
+
+    Luôn trả về thông báo thành công dù email có tồn tại hay không
+    (tránh lộ thông tin tài khoản — security best practice).
+    """
+    user = db.query(User).filter(User.email == email.lower()).first()
+
+    if user and user.is_active:
+        # Vô hiệu hóa tất cả token reset cũ chưa dùng của user này
+        db.query(PasswordReset).filter(
+            PasswordReset.user_id == user.id,
+            PasswordReset.is_used == False,
+        ).update({"is_used": True})
+        db.commit()
+
+        # Tạo token ngẫu nhiên 32 bytes (64 hex chars) — đủ entropy
+        raw_token = secrets.token_hex(32)
+        token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+
+        reset_record = PasswordReset(
+            user_id=user.id,
+            token_hash=token_hash,
+            expires_at=datetime.utcnow() + timedelta(minutes=PASSWORD_RESET_EXPIRE_MINUTES),
+            is_used=False,
+        )
+        db.add(reset_record)
+        db.commit()
+
+        # Gửi email (lỗi gửi mail không block response)
+        send_password_reset_email(
+            to_email=user.email,
+            full_name=user.full_name,
+            reset_token=raw_token,
+        )
+
+    return {
+        "message": "Nếu email tồn tại trong hệ thống, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu."
+    }
+
+
+def confirm_password_reset(token: str, new_password: str, db: Session) -> dict:
+    """Xác nhận token và đặt mật khẩu mới."""
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+
+    reset_record = db.query(PasswordReset).filter(
+        PasswordReset.token_hash == token_hash,
+        PasswordReset.is_used == False,
+        PasswordReset.expires_at > datetime.utcnow(),
+    ).first()
+
+    if not reset_record:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "AUTH_INVALID_RESET_TOKEN",
+                "message": "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.",
+            },
+        )
+
+    user = db.query(User).filter(User.id == reset_record.user_id).first()
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "AUTH_INVALID_RESET_TOKEN",
+                "message": "Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.",
+            },
+        )
+
+    # Cập nhật mật khẩu
+    user.password_hash = hash_password(new_password)
+
+    # Đánh dấu token đã dùng
+    reset_record.is_used = True
+
+    # Thu hồi tất cả session hiện tại (bắt đăng nhập lại)
+    db.query(UserSession).filter(
+        UserSession.user_id == user.id,
+        UserSession.is_revoked == False,
+    ).update({"is_revoked": True})
+
+    db.commit()
+
+    return {"message": "Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại."}

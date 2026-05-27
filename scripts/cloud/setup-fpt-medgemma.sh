@@ -4,7 +4,8 @@ set -euo pipefail
 REPO_URL="${REPO_URL:-https://github.com/VNDT1625/MediSign_AI.git}"
 REPO_BRANCH="${REPO_BRANCH:-docs/fix-medgemma-model-name}"
 APP_DIR="${APP_DIR:-$HOME/MediSign_AI}"
-ADAPTER_REPO="${ADAPTER_REPO:-https://huggingface.co/thuaannn/medisign-medgemma4b-adapter}"
+ADAPTER_REPO="${ADAPTER_REPO:-thuaannn/medisign-medgemma4b-adapter}"
+PSYCHOLOGY_ADAPTER_REPO="${PSYCHOLOGY_ADAPTER_REPO:-thuaannn/medisign-medgemma4b-psychology}"
 if [ -z "${HF_TOKEN:-}" ] && [ -n "${HUGGING_FACE_HUB_TOKEN:-}" ]; then
   export HF_TOKEN="$HUGGING_FACE_HUB_TOKEN"
 fi
@@ -81,11 +82,17 @@ print("Hugging Face model access OK:", info.modelId)
 PY
 
 mkdir -p output
-if [ ! -d output/medisign-medgemma4b-adapter/.git ]; then
-  git clone "$ADAPTER_REPO" output/medisign-medgemma4b-adapter
-else
-  git -C output/medisign-medgemma4b-adapter pull --ff-only
-fi
+
+# Pull medical adapter
+echo "Pulling medical adapter ..."
+huggingface-cli download "$ADAPTER_REPO" \
+  --local-dir output/medisign-medgemma4b-adapter
+
+# Pull psychology adapter (optional — bỏ qua nếu repo chưa tồn tại)
+echo "Pulling psychology adapter ..."
+huggingface-cli download "$PSYCHOLOGY_ADAPTER_REPO" \
+  --local-dir output/medisign_medgemma4b_psychology/adapter \
+  || echo "  WARN: psychology adapter repo not accessible, skipping"
 
 python -m py_compile scripts/dev/medgemma_openai_server.py
 test -f output/medisign-medgemma4b-adapter/adapter_config.json

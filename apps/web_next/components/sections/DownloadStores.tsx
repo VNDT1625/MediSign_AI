@@ -33,7 +33,7 @@ export function DownloadStores() {
 
         <Reveal
           stagger
-          className="mx-auto mt-12 grid max-w-6xl gap-4 lg:grid-cols-5 lg:grid-rows-3"
+          className="mx-auto mt-10 grid max-w-6xl gap-4 sm:mt-12 lg:grid-cols-5 lg:grid-rows-3"
         >
           {/* FEATURED — Mobile (iOS + Android) */}
           <article className="reveal card-lift shine-card relative overflow-hidden rounded-[24px] border border-ink-200 bg-gradient-to-br from-brand-50 via-white to-accent/10 p-6 shadow-soft lg:col-span-3 lg:row-span-3 lg:p-8">

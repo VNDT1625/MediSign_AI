@@ -150,9 +150,9 @@ const TONE: Record<Feature["tone"], { tile: string; bg: string }> = {
 };
 
 const BADGE: Record<Feature["badge"], string> = {
-  "Chỉ trên app": "bg-accent-soft text-accent",
+  "Chỉ trên app": "bg-accent-soft text-accent-800",
   "Web & app": "bg-brand-50 text-brand-700",
-  "Tất cả": "bg-success/15 text-success",
+  "Tất cả": "bg-success/15 text-success-900",
 };
 
 export function DownloadFeatures() {

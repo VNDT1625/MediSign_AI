@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/models/communication_mode.dart';
+import 'vsl_output_widget.dart';
 
 /// Triage Result View — displays AI consultation results using
 /// PICTOGRAM-FIRST design. Traffic light system (🟢🟡🔴) + action icons.
@@ -32,6 +33,12 @@ class TriageResultView extends StatelessWidget {
   final VoidCallback onGoHome;
   final VoidCallback onCallEmergency;
 
+  String _buildVslText() {
+    final symptomsStr = selectedSymptoms.map((s) => s.label).join(', ');
+    final adviceStr = adviceItems.map((a) => a.title).join('. ');
+    return 'Bạn bị $symptomsStr. Lời khuyên: $adviceStr';
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -40,6 +47,12 @@ class TriageResultView extends StatelessWidget {
         children: [
           // ── Traffic Light Card ──
           _buildTriageBadge(),
+          const SizedBox(height: 20),
+
+          // ── VSL Sign Language Output (Offline Double-Buffering) ──
+          VslOutputWidget(
+            text: _buildVslText(),
+          ),
           const SizedBox(height: 20),
 
           // ── Your Symptoms Summary (emoji only) ──

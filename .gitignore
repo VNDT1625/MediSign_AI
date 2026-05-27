@@ -55,3 +55,50 @@ dist/
 
 # Model outputs
 output/
+
+# Crawl progress + scratch
+.crawl_*_progress.json
+crawl_*_run*.log
+crawl_*_run*.err.log
+diseases_*.json
+thongtincacdoi.csv
+git-status.log
+tests-dir.log
+fix_meta.ps1
+
+# Build artifacts that slip in
+report_build/__pycache__/
+**/*.tsbuildinfo
+
+# Local databases
+*.sqlite3
+*.sqlite3-journal
+
+# Hypothesis test cache
+.hypothesis/
+**/.hypothesis/
+
+# Local IDE / agent settings
+.claude/settings.local.json
+
+# Regen progress files
+.regenerate_*_progress*.json
+
+# Scratch / temp output
+tmp_screenshots/
+**/tmp_screenshots/
+audit-*.out.txt
+test_output.txt
+git_status*.txt
+g1.txt
+g2.txt
+p.txt
+
+# Personal reports / docx in repo root
+/BaoCao_*.docx
+/*.docx
+
+
+# External cloned repos / submodule-like folders
+data/external/brightohir/
+data/external/*/

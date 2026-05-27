@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -22,9 +21,11 @@ class AccessibleConsultPage extends StatefulWidget {
   const AccessibleConsultPage({
     super.key,
     required this.onBack,
+    this.initialMethod = CommunicationMethod.tap,
   });
 
   final VoidCallback onBack;
+  final CommunicationMethod initialMethod;
 
   @override
   State<AccessibleConsultPage> createState() => _AccessibleConsultPageState();
@@ -54,6 +55,12 @@ class _AccessibleConsultPageState extends State<AccessibleConsultPage>
   @override
   void initState() {
     super.initState();
+    _activeMode = switch (widget.initialMethod) {
+      CommunicationMethod.voice => _ConsultMode.voice,
+      CommunicationMethod.sign => _ConsultMode.sign,
+      CommunicationMethod.tap => _ConsultMode.tap,
+      CommunicationMethod.text => _ConsultMode.text,
+    };
     _pulseCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),

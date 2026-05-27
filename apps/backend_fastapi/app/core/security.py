@@ -85,3 +85,43 @@ def _create_token(subject: str, token_type: str, expires_at: datetime) -> str:
         "exp": expires_at,
     }
     return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+
+
+# ─── Production secret validation ────────────────────────────────────────────
+
+DEFAULT_INSECURE_JWT_SECRET = "change-this-secret-key-at-least-32-bytes"
+_PRODUCTION_ENVS = {"production", "prod", "live"}
+
+
+def assert_production_secret() -> None:
+    """Refuse to start the app in production with the default JWT secret.
+
+    Called from the FastAPI lifespan. In non-production environments the
+    function only logs a warning so local developers don't get blocked.
+    """
+    import logging
+
+    logger = logging.getLogger("medisign.security")
+    secret = settings.jwt_secret_key or ""
+    env = (settings.app_env or "").strip().lower()
+
+    is_default = secret == DEFAULT_INSECURE_JWT_SECRET
+    is_too_short = len(secret.encode("utf-8")) < 32
+
+    if env in _PRODUCTION_ENVS and (is_default or is_too_short):
+        raise RuntimeError(
+            "BACKEND_JWT_SECRET_KEY is missing, default, or shorter than 32 bytes. "
+            "Set a strong random secret before starting the app in production."
+        )
+
+    if is_default:
+        logger.warning(
+            "BACKEND_JWT_SECRET_KEY is using the default placeholder. "
+            "This is acceptable for local dev only — rotate before staging/prod."
+        )
+    elif is_too_short:
+        logger.warning(
+            "BACKEND_JWT_SECRET_KEY is shorter than 32 bytes (current=%d). "
+            "Use a longer random secret in any shared environment.",
+            len(secret.encode("utf-8")),
+        )

@@ -1,5 +1,7 @@
 import '../models/garden_item.dart';
 import '../models/journal_entry.dart';
+import '../network/api_contracts.dart';
+import '../network/api_models.dart' as net;
 
 /// Achievement definition.
 class Achievement {
@@ -63,14 +65,85 @@ class TreeState {
   });
 }
 
-/// Soul Garden service — in-memory storage, ready for SQLite swap.
+/// Soul Garden service — in-memory cache backed by an optional [JournalApi].
+///
+/// Storage strategy:
+///   - When a [JournalApi] is attached via [bindBackend], CRUD operations
+///     persist to the FastAPI `/journal` endpoints AND keep the in-memory
+///     cache in sync. The first call to [bootstrap] hydrates the cache from
+///     the backend listing.
+///   - When no API is attached (anonymous user / offline), CRUD stays purely
+///     in-memory — preserves the legacy demo behaviour.
+///
+/// Persistence happens fire-and-forget on a best-effort basis so the UI
+/// never blocks; failures are swallowed and surfaced via [lastSyncError].
 class SoulGardenService {
   SoulGardenService._() {
+    // Seed sample data so the UI is not empty on first launch (anonymous /
+    // offline). Once [bootstrap] succeeds, the seed entries are replaced by
+    // real backend data.
     _seedSampleDataIfEmpty();
   }
   static final instance = SoulGardenService._();
 
   final List<JournalEntry> _entries = [];
+
+  // ─── BACKEND WIRING ───────────────────────────
+
+  /// Optional backend client. When null, the service is purely in-memory.
+  JournalApi? _api;
+
+  /// Latest sync error (null when last operation succeeded).
+  Object? lastSyncError;
+
+  /// `true` once [bootstrap] has fetched at least one page from the backend.
+  bool _hydrated = false;
+
+  /// Attach a backend client. Call this from `service_locator.dart` (or
+  /// `app.dart`) once the user is authenticated.
+  ///
+  /// Passing `null` detaches the backend and keeps subsequent CRUD purely
+  /// in-memory — useful when the user logs out.
+  void bindBackend(JournalApi? api) {
+    _api = api;
+    _hydrated = false;
+  }
+
+  /// Pull the latest journal entries from the backend and replace the
+  /// in-memory cache. Idempotent: safe to call on every app foreground.
+  ///
+  /// No-op when no backend is bound.
+  Future<void> bootstrap({
+    DateTime? from,
+    DateTime? to,
+    int pageSize = 50,
+  }) async {
+    final api = _api;
+    if (api == null) return;
+    try {
+      final records = await api.list(
+        from: from,
+        to: to,
+        page: 1,
+        pageSize: pageSize,
+      );
+      // Replace the in-memory cache (including any seed entries) with real
+      // backend data now that we have a successful response.
+      _entries
+        ..clear()
+        ..addAll(records.map(_recordToEntry));
+      _hydrated = true;
+      lastSyncError = null;
+    } catch (e) {
+      lastSyncError = e;
+      // Keep whatever in-memory data we already had — don't wipe the cache
+      // just because the network is flaky.
+    }
+  }
+
+  /// Whether [bootstrap] has succeeded at least once. Useful for deciding
+  /// whether to keep showing seeded sample data or not.
+  bool get isHydrated => _hydrated;
 
   // ─── SAMPLE DATA ──────────────────────────────
 
@@ -166,17 +239,123 @@ class SoulGardenService {
 
   void addEntry(JournalEntry entry) {
     _entries.insert(0, entry);
+    _persistCreate(entry);
   }
 
   void deleteEntry(String id) {
     _entries.removeWhere((e) => e.id == id);
+    _persistDelete(id);
   }
 
   void updateEntry(JournalEntry updatedEntry) {
     final index = _entries.indexWhere((e) => e.id == updatedEntry.id);
     if (index != -1) {
       _entries[index] = updatedEntry;
+      _persistUpdate(updatedEntry);
     }
+  }
+
+  // ─── PERSISTENCE HELPERS ──────────────────────
+  //
+  // Each method is fire-and-forget: the caller's UI updates immediately from
+  // the in-memory cache and the network round-trip happens in the background.
+  // Errors are recorded on [lastSyncError] but do NOT throw — Soul Garden's
+  // UX prioritises fluid interaction over guaranteed durability.
+
+  Future<void> _persistCreate(JournalEntry entry) async {
+    final api = _api;
+    if (api == null) return;
+    try {
+      final record = await api.create(_entryToInput(entry, isCreate: true));
+      // Reconcile: the backend issues the canonical id + timestamps.
+      final idx = _entries.indexWhere((e) => e.id == entry.id);
+      if (idx != -1) {
+        _entries[idx] = _recordToEntry(record);
+      }
+      lastSyncError = null;
+    } catch (e) {
+      lastSyncError = e;
+    }
+  }
+
+  Future<void> _persistUpdate(JournalEntry entry) async {
+    final api = _api;
+    // seed_ entries are demo data that were never persisted — skip.
+    // Local mood_/journal_ ids are reconciled to backend ids by _persistCreate.
+    // If an update happens before that reconciliation finishes, the backend
+    // call may 404; the error is captured in lastSyncError.
+    if (api == null || entry.id.startsWith('seed_')) return;
+    try {
+      await api.update(entry.id, _entryToInput(entry));
+      lastSyncError = null;
+    } catch (e) {
+      lastSyncError = e;
+    }
+  }
+
+  Future<void> _persistDelete(String id) async {
+    final api = _api;
+    // seed_ entries were never persisted — nothing to delete on backend.
+    if (api == null || id.startsWith('seed_')) return;
+    try {
+      await api.remove(id);
+      lastSyncError = null;
+    } catch (e) {
+      lastSyncError = e;
+    }
+  }
+
+  // ─── MAPPING (backend ↔ UI model) ─────────────
+
+  /// Map a backend mood int (1..5, where 5 = best) to the local [Mood] enum.
+  static Mood _moodFromInt(int? mood) {
+    switch (mood) {
+      case 5:
+        return Mood.awesome;
+      case 4:
+        return Mood.good;
+      case 3:
+        return Mood.neutral;
+      case 2:
+        return Mood.sad;
+      case 1:
+        return Mood.awful;
+      default:
+        return Mood.neutral;
+    }
+  }
+
+  /// Map a UI [Mood] to the backend int. Aligns with [MoodX.score].
+  static int _moodToInt(Mood mood) => mood.score;
+
+  /// Map a backend tag string (e.g. "grateful") to the local enum. Unknown
+  /// tags are dropped silently.
+  static EmotionTag? _tagFromString(String tag) {
+    for (final e in EmotionTag.values) {
+      if (e.name == tag) return e;
+    }
+    return null;
+  }
+
+  static JournalEntry _recordToEntry(net.JournalRecord rec) {
+    final tags = rec.tags.map(_tagFromString).whereType<EmotionTag>().toSet();
+    return JournalEntry(
+      id: rec.id,
+      date: rec.date,
+      mood: _moodFromInt(rec.mood),
+      content: rec.content ?? '',
+      tags: tags,
+    );
+  }
+
+  static net.JournalInput _entryToInput(JournalEntry entry,
+      {bool isCreate = false}) {
+    return net.JournalInput(
+      date: isCreate ? entry.date : null,
+      mood: _moodToInt(entry.mood),
+      content: entry.content,
+      tags: entry.tags.map((t) => t.name).toList(),
+    );
   }
 
   /// Search entries by content
@@ -870,10 +1049,19 @@ class SoulGardenService {
     'bg_night': (s) => s.streak >= 7,
     'bg_snow': (s) => s.streak >= 21,
     'bg_galaxy': (s) {
+      // NOTE: Must NOT call s.unlockedItemIds or s.isItemUnlocked here —
+      // that would recurse back into _unlockChecks and cause a stack overflow.
+      // Count directly without recursion.
       int unlocked = 0;
       for (final item in gardenCatalog) {
+        if (item.isDefault) {
+          unlocked++;
+          continue;
+        }
         final check = _unlockChecks[item.id];
-        if (item.isDefault || (check != null && check(s))) unlocked++;
+        // Skip bg_galaxy itself to prevent infinite recursion
+        if (item.id == 'bg_galaxy') continue;
+        if (check != null && check(s)) unlocked++;
       }
       return unlocked >= 20;
     },
@@ -1060,17 +1248,22 @@ class SoulGardenService {
     buffer.writeln('## Soul Garden Context');
 
     // Xu hướng tâm trạng
-    buffer.writeln('- Xu hướng 7 ngày: ${recent7.averageScore.toStringAsFixed(1)}/5');
+    buffer.writeln(
+        '- Xu hướng 7 ngày: ${recent7.averageScore.toStringAsFixed(1)}/5');
     if (recent7.trendPercent != null) {
       final trend = recent7.trendPercent!;
-      buffer.writeln('- So với kỳ trước: ${trend > 0 ? "tích cực" : "cần chú ý"} (${trend.abs().toStringAsFixed(0)}%)');
+      buffer.writeln(
+          '- So với kỳ trước: ${trend > 0 ? "tích cực" : "cần chú ý"} (${trend.abs().toStringAsFixed(0)}%)');
     }
 
     // Tags phổ biến
     if (recent30.tagFrequency.isNotEmpty) {
       final topTags = recent30.tagFrequency.entries.toList()
         ..sort((a, b) => b.value.compareTo(a.value));
-      final top3 = topTags.take(3).map((e) => '${e.key.emoji} ${e.key.label}').join(', ');
+      final top3 = topTags
+          .take(3)
+          .map((e) => '${e.key.emoji} ${e.key.label}')
+          .join(', ');
       buffer.writeln('- Tags phổ biến: $top3');
     }
 
@@ -1082,7 +1275,8 @@ class SoulGardenService {
     if (recentEntries.isNotEmpty) {
       buffer.writeln('- Nhật ký gần đây:');
       for (final e in recentEntries) {
-        buffer.writeln('  * ${e.date.day}/${e.date.month}: ${e.content.substring(0, e.content.length.clamp(0, 50))}...');
+        buffer.writeln(
+            '  * ${e.date.day}/${e.date.month}: ${e.content.substring(0, e.content.length.clamp(0, 50))}...');
       }
     }
 

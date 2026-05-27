@@ -4,7 +4,7 @@ export function PricingHero({ onCta }: { onCta?: () => void }) {
   return (
     <section
       aria-labelledby="pricing-hero-heading"
-      className="relative overflow-hidden bg-gradient-to-b from-[#F0F9FF] via-white to-white pt-28 pb-0 lg:pt-36"
+      className="relative overflow-hidden bg-gradient-to-b from-[#F0F9FF] via-white to-white pt-24 pb-0 sm:pt-28 lg:pt-36"
     >
       {/* Ambient blobs — subtle, không distract */}
       <span

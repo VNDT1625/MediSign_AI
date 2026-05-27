@@ -1,8 +1,28 @@
+"use client";
+
 /**
  * Card profile chính: avatar trái, info giữa, illustration thực vật bên phải.
+ *
+ * Trước đây hard-code "Nguyễn An". Giờ kéo dữ liệu thật từ
+ * `useAuth().state.user` qua `getDisplayName` + `getInitials` (cùng
+ * fallback chain với AvatarMenu) để khi đăng nhập sẽ hiển thị đúng tên
+ * và avatar khởi tạo. Khi state đang `loading` hoặc `anonymous`,
+ * component vẫn render layout với placeholder để layout không nhảy.
+ *
  * Illustration đang là placeholder SVG đơn giản — sẽ thay bằng ảnh thật khi có.
  */
+
+import { useAuth } from "@/lib/auth/useAuth";
+import { getDisplayName, getInitials } from "@/lib/api/profile";
+
 export function ProfileCard() {
+  const { state } = useAuth();
+  const user = state.status === "authenticated" ? state.user : null;
+  const displayName = state.status === "loading"
+    ? "Đang tải..."
+    : getDisplayName(user);
+  const initials = state.status === "loading" ? "•" : getInitials(displayName);
+
   return (
     <section
       aria-label="Thẻ hồ sơ người dùng"
@@ -14,8 +34,11 @@ export function ProfileCard() {
       <div className="relative grid items-center gap-5 sm:grid-cols-[120px_1fr]">
         {/* Avatar */}
         <div className="relative w-fit">
-          <div className="grid h-[120px] w-[120px] place-items-center overflow-hidden rounded-pill border-4 border-white bg-gradient-to-br from-brand-50 to-accent/15 text-3xl font-bold text-brand-700 shadow-card">
-            NA
+          <div
+            className="grid h-[120px] w-[120px] place-items-center overflow-hidden rounded-pill border-4 border-white bg-gradient-to-br from-brand-50 to-accent/15 text-3xl font-bold text-brand-700 shadow-card"
+            aria-hidden="true"
+          >
+            {initials}
           </div>
           <button
             type="button"
@@ -36,8 +59,13 @@ export function ProfileCard() {
         {/* Info */}
         <div>
           <h2 className="text-[28px] font-bold leading-tight text-ink-900 sm:text-3xl">
-            Nguyễn An
+            {displayName}
           </h2>
+          {user?.email && (
+            <p className="mt-1 truncate text-sm text-ink-500" title={user.email}>
+              {user.email}
+            </p>
+          )}
           <p className="mt-2 flex items-center gap-2 text-sm text-ink-600">
             <span className="grid h-5 w-5 place-items-center rounded-full bg-success/15 text-success">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">

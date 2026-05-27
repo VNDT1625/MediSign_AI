@@ -1,4 +1,5 @@
 import { Reveal } from "@/components/Reveal";
+import { Fragment } from "react";
 
 type FeatureRow = {
   category: string;
@@ -94,9 +95,9 @@ export function PricingComparison() {
 
                   {/* Pro — highlighted column */}
                   <th scope="col" className="bg-brand-50/60 px-4 py-5 text-center">
-                    <div className="inline-flex items-center gap-1.5 rounded-pill bg-brand px-3 py-1 text-sm font-bold text-white">
+                    <div className="inline-flex items-center gap-1.5 rounded-pill bg-brand-700 px-3 py-1 text-sm font-bold text-white">
                       Pro
-                      <span className="rounded-pill bg-white/20 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
+                      <span className="rounded-pill bg-white px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-700">
                         Phổ biến
                       </span>
                     </div>
@@ -113,12 +114,12 @@ export function PricingComparison() {
 
               <tbody>
                 {ROWS.map((row) => (
-                  <>
+                  <Fragment key={row.category}>
                     {/* Category header */}
-                    <tr key={`cat-${row.category}`} className="border-b border-ink-100 bg-ink-100/50">
+                    <tr className="border-b border-ink-100 bg-ink-100/50">
                       <td
                         colSpan={4}
-                        className="py-2.5 pl-6 text-[11px] font-bold uppercase tracking-widest text-ink-400"
+                        className="py-2.5 pl-6 text-[11px] font-bold uppercase tracking-widest text-ink-600"
                       >
                         {row.category}
                       </td>
@@ -146,7 +147,7 @@ export function PricingComparison() {
                         </td>
                       </tr>
                     ))}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>

@@ -6,14 +6,84 @@ Dành cho Qwen2.5-VL-72B - Khi AI nhận diện được tên thuốc từ ảnh
 """
 import json
 import re
+import os
+import unicodedata
+from functools import lru_cache
+from pathlib import Path
 
-# Load drug database
-DRUG_DB_PATH = r"C:\NDT\PJ\MediSign_AI\data\training_clean\drug_database.json"
+ROOT_DIR = Path(__file__).resolve().parents[4]
+DEFAULT_DRUG_DB_PATHS = (
+    ROOT_DIR / "data" / "training_clean" / "drug_database_dav_detailed_10k.json",
+    ROOT_DIR / "data" / "training_clean" / "drug_database_10k_full.json",
+    ROOT_DIR / "data" / "training_clean" / "drug_database_10k.json",
+    ROOT_DIR / "data" / "training_clean" / "drug_database_expanded.json",
+    ROOT_DIR / "data" / "training_clean" / "drug_database.json",
+)
 
+
+def _resolve_drug_db_path() -> Path:
+    """Resolve the drug database path.
+
+    BACKEND_DRUG_DB_PATH can point to a custom JSON file. Otherwise the
+    expanded DAV-backed database is preferred when present, with the legacy
+    242-drug database as fallback.
+    """
+    configured = os.getenv("BACKEND_DRUG_DB_PATH")
+    if configured:
+        path = Path(configured)
+        if not path.is_absolute():
+            path = ROOT_DIR / path
+        return path
+
+    for path in DEFAULT_DRUG_DB_PATHS:
+        if path.exists():
+            return path
+    return DEFAULT_DRUG_DB_PATHS[-1]
+
+
+def _normalize(value: str) -> str:
+    value = unicodedata.normalize("NFKD", value or "")
+    value = "".join(ch for ch in value if not unicodedata.combining(ch))
+    value = value.lower()
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    return " ".join(value.split())
+
+
+def _searchable_text(drug: dict) -> str:
+    fields = (
+        "name",
+        "description",
+        "active_ingredient_strength",
+        "dosage_form",
+        "registration_number",
+    )
+    return _normalize(" ".join(str(drug.get(field, "")) for field in fields))
+
+
+def _detail_score(drug: dict) -> int:
+    score = 0
+    if drug.get("active_ingredient") or drug.get("active_ingredient_strength"):
+        score += 4
+    if drug.get("dosage_form"):
+        score += 2
+    if drug.get("strength"):
+        score += 1
+    if drug.get("registration_number"):
+        score += 1
+    if drug.get("source") == "dichvucong.dav.gov.vn":
+        score += 2
+    return score
+
+
+@lru_cache(maxsize=4)
 def load_drug_database():
     """Load drug database từ JSON file."""
-    with open(DRUG_DB_PATH, 'r', encoding='utf-8') as f:
-        return json.load(f)
+    path = _resolve_drug_db_path()
+    with path.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+    if not isinstance(data, list):
+        raise ValueError(f"Drug database must be a JSON list: {path}")
+    return data
 
 def search_drug_by_name(drug_name, drug_database):
     """
@@ -26,18 +96,30 @@ def search_drug_by_name(drug_name, drug_database):
     Returns:
         dict: Thông tin thuốc hoặc None nếu không tìm thấy
     """
-    drug_name_lower = drug_name.lower().strip()
+    drug_name_key = _normalize(drug_name)
 
     # Tìm chính xác trước
-    for drug in drug_database:
-        if drug.get('name', '').lower() == drug_name_lower:
-            return drug
+    exact_matches = [
+        drug for drug in drug_database if _normalize(drug.get("name", "")) == drug_name_key
+    ]
+    if exact_matches:
+        return max(exact_matches, key=_detail_score)
+
+    # Tìm theo số đăng ký, hoạt chất, mô tả
+    searchable_matches = [
+        drug for drug in drug_database if drug_name_key and drug_name_key in _searchable_text(drug)
+    ]
+    if searchable_matches:
+        return max(searchable_matches, key=_detail_score)
 
     # Tìm gần đúng (partial match)
+    partial_matches = []
     for drug in drug_database:
-        name_lower = drug.get('name', '').lower()
-        if drug_name_lower in name_lower or name_lower in drug_name_lower:
-            return drug
+        name_key = _normalize(drug.get("name", ""))
+        if drug_name_key and (drug_name_key in name_key or name_key in drug_name_key):
+            partial_matches.append(drug)
+    if partial_matches:
+        return max(partial_matches, key=_detail_score)
 
     return None
 
@@ -53,14 +135,21 @@ def search_drugs_by_keyword(keyword, drug_database, limit=5):
     Returns:
         list: Danh sách thuốc liên quan
     """
-    keyword_lower = keyword.lower().strip()
+    keyword_key = _normalize(keyword)
     results = []
+    seen = set()
 
     for drug in drug_database:
-        name = drug.get('name', '').lower()
-        desc = drug.get('description', '').lower()
+        searchable = _searchable_text(drug)
 
-        if keyword_lower in name or keyword_lower in desc:
+        if keyword_key and keyword_key in searchable:
+            identity = (
+                _normalize(drug.get("registration_number", "")),
+                _normalize(drug.get("name", "")),
+            )
+            if identity in seen:
+                continue
+            seen.add(identity)
             results.append(drug)
 
         if len(results) >= limit:

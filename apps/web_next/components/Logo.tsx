@@ -1,28 +1,38 @@
+/**
+ * `Logo` — MediSign AI brand mark.
+ *
+ * Renders the cropped wordmark from `/public/logo.png` (944×322, aspect
+ * ~2.93:1). The artwork already contains the "MediSign" wordmark, so
+ * we do NOT render duplicate text next to it.
+ *
+ * Slot sizing:
+ *   - Default: `h-10 lg:h-12` (40px / 48px tall) — sized for the header
+ *     pill (h-14 / h-16) so the logo doesn't look lép. Width auto.
+ *   - Caller can override via `className` (e.g. `[&>img]:h-8` for the
+ *     compact desktop app header).
+ *
+ * Notes:
+ * - Uses a plain `<img>` with the Next.js no-img-element disable because:
+ *     1. The artwork is a raster brand mark — no responsive variants needed.
+ *     2. Header / footer slots are above-the-fold; we want the byte to
+ *        ship in the initial HTML, not deferred through next/image.
+ * - `aria-label` on the wrapper announces the brand to AT; the `<img>`
+ *   itself carries `alt=""` so screen readers don't read the name twice.
+ */
 export function Logo({ className = "" }: { className?: string }) {
   return (
-    <span className={`inline-flex items-center gap-2 ${className}`}>
-      <svg
-        width="32"
-        height="32"
-        viewBox="0 0 32 32"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
-      >
-        <path
-          d="M16 2l11 4v9c0 7-5 12-11 15-6-3-11-8-11-15V6l11-4z"
-          fill="#0284C7"
-        />
-        <path
-          d="M16 9v10M11 14h10"
-          stroke="#fff"
-          strokeWidth="2.4"
-          strokeLinecap="round"
-        />
-      </svg>
-      <span className="text-lg font-bold tracking-tight text-ink-900">
-        MediSign <span className="text-brand">AI</span>
-      </span>
+    <span
+      role="img"
+      aria-label="MediSign AI"
+      className={`inline-flex items-center ${className}`}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/logo.png"
+        alt=""
+        className="h-12 w-auto select-none sm:h-14 lg:h-16 2xl:h-20"
+        draggable={false}
+      />
     </span>
   );
 }

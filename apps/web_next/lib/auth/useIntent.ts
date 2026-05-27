@@ -47,7 +47,7 @@ import {
 const STORAGE_KEY = "medisign:intent";
 
 /** Default destination whenever the intent is missing or disallowed. */
-const FALLBACK_REDIRECT = "/app/chat";
+const FALLBACK_REDIRECT = "/chat";
 
 /** Query parameter names — kept in sync with `lib/utils/intent.ts`. */
 const INTENT_PARAM = "intent";
@@ -148,10 +148,15 @@ function clearUrlIntent(): void {
 /**
  * Map a decoded intent to a concrete redirect path.
  *
- * - `"home"`            → `/app`
- * - `"chat"`            → `/app/chat` (+ `?prefill=...` when present)
- * - `/app/<anything>`   → the path verbatim
- * - missing / invalid   → `/app/chat`
+ * Web hiện tại đã chuyển sang public route `/chat`, `/profile`. Các giá
+ * trị intent legacy `/app/...` được normalise lại để không 404.
+ *
+ * - `"home"`            → `/chat`
+ * - `"chat"`            → `/chat` (+ `?prefill=...` when present)
+ * - `/app/chat...`      → `/chat...`
+ * - `/app/profile...`   → `/profile...`
+ * - `/app/...` khác     → `/`
+ * - missing / invalid   → `/chat`
  */
 function buildRedirectPath(decoded: DecodedIntent | null): ConsumeResult {
   if (!decoded) return { redirectPath: FALLBACK_REDIRECT };
@@ -160,8 +165,8 @@ function buildRedirectPath(decoded: DecodedIntent | null): ConsumeResult {
 
   if (intent === "home") {
     return prefilledMessage !== undefined
-      ? { redirectPath: "/app", prefilledMessage }
-      : { redirectPath: "/app" };
+      ? { redirectPath: "/chat", prefilledMessage }
+      : { redirectPath: "/chat" };
   }
 
   if (intent === "chat") {
@@ -169,17 +174,29 @@ function buildRedirectPath(decoded: DecodedIntent | null): ConsumeResult {
       const qs = new URLSearchParams();
       qs.set(PREFILL_PARAM, prefilledMessage);
       return {
-        redirectPath: `/app/chat?${qs.toString()}`,
+        redirectPath: `/chat?${qs.toString()}`,
         prefilledMessage,
       };
     }
-    return { redirectPath: "/app/chat" };
+    return { redirectPath: "/chat" };
   }
 
-  // `intent` is a path inside `/app/...` (allowlist-validated by decodeIntent).
+  // `intent` là path `/app/...` từ decodeIntent — map về public route.
+  let redirectPath: string;
+  if (intent === "/app/chat" || intent.startsWith("/app/chat/")) {
+    redirectPath = intent.replace(/^\/app\/chat/, "/chat");
+  } else if (
+    intent === "/app/profile" ||
+    intent.startsWith("/app/profile/")
+  ) {
+    redirectPath = intent.replace(/^\/app\/profile/, "/profile");
+  } else {
+    redirectPath = "/";
+  }
+
   return prefilledMessage !== undefined
-    ? { redirectPath: intent, prefilledMessage }
-    : { redirectPath: intent };
+    ? { redirectPath, prefilledMessage }
+    : { redirectPath };
 }
 
 export function useIntent(): UseIntent {

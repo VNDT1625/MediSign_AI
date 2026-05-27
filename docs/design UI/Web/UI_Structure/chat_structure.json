@@ -1,0 +1,143 @@
+{
+  "pageName": "Chat AI Interface",
+  "layout": "Three-Column Layout",
+  "theme": {
+    "sidebarBg": "#F8FAFC",
+    "mainBg": "#FFFFFF",
+    "accentColor": "#0284C7"
+  },
+  "components": [
+    {
+      "id": "sidebar_left",
+      "width": "20%",
+      "elements": [
+        { "type": "button", "id": "new_chat", "label": "Cuộc trò chuyện mới", "icon": "Plus" },
+        { "type": "search_bar", "placeholder": "Tìm kiếm cuộc trò chuyện" },
+        {
+          "type": "list",
+          "id": "recent_chats",
+          "label": "Cuộc trò chuyện gần đây",
+          "items": [
+            { "label": "Viêm họng và ho kéo dài", "time": "10:24", "status": "active" },
+            { "label": "Sốt nhẹ và đau đầu", "time": "Hôm qua" }
+          ]
+        },
+        {
+          "type": "grid",
+          "id": "communication_modes",
+          "label": "Chế độ giao tiếp",
+          "items": [
+            { "id": "text", "label": "Text", "icon": "Keyboard", "active": true },
+            { "id": "voice", "label": "Voice", "icon": "Mic" },
+            { "id": "click", "label": "Click", "icon": "Cursor" },
+            { "id": "sign_language", "label": "Ký hiệu", "icon": "Hands" }
+          ]
+        },
+        {
+          "type": "settings_group",
+          "items": [
+            { "label": "Cài đặt", "icon": "Settings" },
+            { "label": "Trợ giúp & Hướng dẫn", "icon": "Help" },
+            { "label": "Chế độ cao tuổi", "type": "toggle", "active": false },
+            { "label": "Cỡ chữ", "value": "Lớn" }
+          ]
+        },
+        {
+          "type": "external_links",
+          "items": [
+            { "id": "soul_garden", "label": "SoulGarden", "badge": "Chi trên app" },
+            { "id": "medicine_cabinet", "label": "Tủ thuốc", "badge": "Chi trên app" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chat_main",
+      "width": "60%",
+      "header": {
+        "title": "MediSign AI",
+        "status": "Trợ lý y tế AI của bạn",
+        "actions": ["History", "More"]
+      },
+      "content": [
+        {
+          "type": "message_group",
+          "date": "Hôm nay",
+          "messages": [
+            { "sender": "user", "text": "Chào MediSign AI, tôi bị đau họng và ho khan 2 ngày nay...", "time": "10:24" },
+            {
+              "sender": "ai",
+              "text": "Chào bạn Minh An, cảm ơn bạn đã chia sẻ... Để đánh giá chính xác hơn, bạn có thể cung cấp thêm thông tin...",
+              "list": ["Nhiệt độ cơ thể?", "Có đau đầu mệt mỏi không?", "Đã dùng thuốc gì chưa?"],
+              "time": "10:24"
+            },
+            {
+              "sender": "user",
+              "text": "Tôi sốt 37.8°C, hơi mệt... Đây là kết quả X-quang phổi sáng nay.",
+              "attachment": { "name": "Xquang_phoi_07052025.jpg", "type": "image", "size": "327 KB" },
+              "time": "10:27"
+            },
+            {
+              "sender": "ai",
+              "card": {
+                "id": "analysis_result",
+                "title": "Đánh giá sơ bộ",
+                "metrics": [
+                  { "label": "Nhiệt độ", "value": "37.8°C (Sốt nhẹ)", "status": "warning" },
+                  { "label": "Triệu chứng", "value": "Đau họng, ho khan, mệt nhẹ" },
+                  { "label": "X-quang phổi", "value": "Không thấy tổn thương rõ rệt", "status": "success" }
+                ],
+                "recommendation": {
+                  "title": "Gợi ý xử trí",
+                  "items": ["Nghỉ ngơi, uống nhiều nước ấm", "Súc họng bằng nước muối", "Theo dõi thêm 1-2 ngày"]
+                }
+              }
+            }
+          ]
+        }
+      ],
+      "footer": {
+        "input": {
+          "placeholder": "Hỏi bất cứ điều gì về sức khỏe của bạn...",
+          "actions": ["Attachment", "Image", "Camera", "Mic", "Send"]
+        },
+        "disclaimer": "MediSign AI có thể mắc sai sót. Vui lòng không thay thế cho chẩn đoán của bác sĩ."
+      }
+    },
+    {
+      "id": "sidebar_right",
+      "width": "20%",
+      "sections": [
+        {
+          "id": "fast_summary",
+          "title": "Tóm tắt nhanh",
+          "content": {
+            "symptoms": "Đau họng, ho khan, sốt nhẹ 37.8°C, mệt nhẹ.",
+            "assessment": "Khả năng cao là viêm họng do virus.",
+            "recommendation": "Nghỉ ngơi, uống nước ấm, theo dõi thêm 1-2 ngày."
+          },
+          "action": "Xem chi tiết"
+        },
+        {
+          "id": "next_suggestions",
+          "title": "Gợi ý tiếp theo",
+          "items": [
+            { "label": "Lịch uống thuốc nhắc nhở", "icon": "Calendar" },
+            { "label": "Thực phẩm nên ăn khi viêm họng", "icon": "Star" },
+            { "label": "Bài tập thở giúp giảm ho", "icon": "Lungs" },
+            { "label": "Khi nào cần đi khám ngay?", "icon": "Alert" }
+          ]
+        },
+        {
+          "id": "attachments",
+          "title": "Tệp đính kèm",
+          "items": [
+            { "name": "Xquang_phoi_07052025.jpg", "size": "327 KB", "type": "jpg" },
+            { "name": "Cong-thuc-nuoc-gung.pdf", "size": "128 KB", "type": "pdf" }
+          ],
+          "action": "Xem tất cả"
+        }
+      ]
+    }
+  ]
+}

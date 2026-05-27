@@ -34,7 +34,7 @@
  * polish items called out in the Pre-Delivery Checklist.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import type {
@@ -126,7 +126,19 @@ function extractValidationFieldErrors(
   return out;
 }
 
-export function LoginModal({
+export function LoginModal(props: {
+  open: boolean;
+  onClose: () => void;
+  prefilledMessage?: string;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <LoginModalContent {...props} />
+    </Suspense>
+  );
+}
+
+function LoginModalContent({
   open,
   onClose,
   prefilledMessage,
@@ -164,13 +176,23 @@ export function LoginModal({
   const [failedAttempts, setFailedAttempts] = useState<number[]>([]);
   // `now` is a ticking value used purely to recompute the rate-limit
   // countdown each second while the user is locked out.
-  const [now, setNow] = useState<number>(() => Date.now());
+  // Initialize to 0 (not Date.now()) so the server-rendered HTML matches
+  // the initial client render and avoids a hydration mismatch.
+  const [now, setNow] = useState<number>(0);
+
+  // Sync to real time after mount.
+  useEffect(() => {
+    setNow(Date.now());
+  }, []);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
   // Container for the focus trap — points at the outer dialog div so the
   // Tab cycle is bounded by the modal surface (header controls + form).
   const dialogRef = useRef<HTMLDivElement | null>(null);
+  // Stores the element that had focus before the modal opened so we can
+  // return focus to it when the modal closes (WCAG 2.4.3 / A3 fix).
+  const triggerRef = useRef<HTMLElement | null>(null);
 
   // ---------------------------------------------------------------------
   // Rate-limit derived state
@@ -205,7 +227,7 @@ export function LoginModal({
   // ---------------------------------------------------------------------
 
   const handleRequestClose = useCallback(() => {
-    if (closing || pending) return;
+    if (pending) return;
     setClosing(true);
     setVideoEnded(false);
     const v = videoRef.current;
@@ -215,7 +237,12 @@ export function LoginModal({
       /* ignore */
     }
     onClose();
-  }, [closing, pending, onClose]);
+    // Return focus to the element that triggered the modal (WCAG 2.4.3 / A3 fix).
+    // We call focus() directly so it fires synchronously — this ensures the
+    // focus return is testable and also works correctly in real browsers since
+    // the CSS opacity transition is handled separately from focus management.
+    triggerRef.current?.focus();
+  }, [pending, onClose]);
 
   // Reset transient state every time the modal toggles open. We deliberately
   // do NOT clear `failedAttempts` on close — the rate-limit must survive
@@ -224,6 +251,9 @@ export function LoginModal({
   useEffect(() => {
     const v = videoRef.current;
     if (open) {
+      // Capture the currently focused element so we can return focus to it
+      // when the modal closes (WCAG 2.4.3 / A3 fix).
+      triggerRef.current = document.activeElement as HTMLElement;
       setVideoEnded(false);
       setClosing(false);
       setMode("login");
@@ -325,9 +355,22 @@ export function LoginModal({
       document.body.style.paddingRight = `${scrollbarWidth}px`;
     }
 
+    // Track the last focused element outside the dialog so we can return
+    // focus to it when the modal closes (WCAG 2.4.3 / A3 fix).
+    // This handles the case where focus is moved to an element outside the
+    // dialog after the modal is already open (e.g. programmatic focus in tests).
+    const onFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && dialogRef.current && !dialogRef.current.contains(target)) {
+        triggerRef.current = target;
+      }
+    };
+    document.addEventListener("focusin", onFocusIn);
+
     closeBtnRef.current?.focus();
     return () => {
       window.removeEventListener("keydown", onKey);
+      document.removeEventListener("focusin", onFocusIn);
       document.body.style.overflow = prevOverflow;
       document.body.style.paddingRight = prevPaddingRight;
     };
@@ -676,10 +719,12 @@ export function LoginModal({
 
   return (
     <div
+      ref={dialogRef}
       role="dialog"
       aria-modal="true"
       aria-labelledby="login-title"
       aria-hidden={!open}
+      tabIndex={-1}
       style={{ transitionDuration: `${FADE_MS}ms` }}
       className={`fixed inset-0 z-40 motion-safe:transition-opacity motion-safe:ease-out ${
         open ? "opacity-100" : "pointer-events-none opacity-0"

@@ -46,7 +46,7 @@ const REVIEWS: Review[] = [
 
 export function TestimonialsSection() {
   return (
-    <section className="py-16 lg:py-24">
+    <section id="testimonials" className="py-16 lg:py-24">
       <div className="container-page">
         <Reveal className="mx-auto max-w-2xl text-center">
           <span className="badge-pill">Phản hồi thật</span>
@@ -61,7 +61,7 @@ export function TestimonialsSection() {
           </div>
         </Reveal>
 
-        <Reveal as="ul" stagger className="mx-auto mt-12 grid max-w-6xl gap-6 md:grid-cols-3">
+        <Reveal as="ul" stagger className="mx-auto mt-10 grid max-w-6xl gap-5 sm:mt-12 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3 2xl:max-w-7xl 2xl:gap-8">
           {REVIEWS.map((r, i) => (
             <li key={r.name} className="reveal" style={{ ["--reveal-i" as any]: i }}>
               <article className="relative h-full rounded-card border border-ink-200 bg-white p-6 shadow-soft transition-all duration-300 hover:-translate-y-1 hover:border-brand/30 hover:shadow-card">

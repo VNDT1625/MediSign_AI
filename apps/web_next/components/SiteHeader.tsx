@@ -37,7 +37,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
+import { Suspense, useCallback, useState } from "react";
 
 import { AvatarMenu } from "./auth/AvatarMenu";
 import { Logo } from "./Logo";
@@ -62,7 +62,30 @@ export interface SiteHeaderProps {
   onLoginClick?: () => void;
 }
 
-export function SiteHeader({ onLoginClick }: SiteHeaderProps) {
+export function SiteHeader(props: SiteHeaderProps) {
+  // `useSearchParams()` (called transitively via `useIntent` and the
+  // `LoginRedirectHandler` stamping flow) requires a Suspense boundary
+  // during static prerender (Next.js App Router 14 CSR-bailout rule).
+  // Wrapping the SiteHeader content in <Suspense> keeps every page that
+  // mounts the header (e.g. `/`, `/profile`, `/chat`, …) buildable
+  // without forcing each page to add its own boundary.
+  return (
+    <Suspense fallback={
+      <header className="fixed top-2 left-2 right-2 z-30 sm:top-4 sm:left-4 sm:right-4 2xl:left-1/2 2xl:right-auto 2xl:w-[calc(100%-2rem)] 2xl:max-w-[1440px] 2xl:-translate-x-1/2">
+        <div className="flex h-14 items-center justify-between gap-2 rounded-pill border border-gray-200 bg-white/95 px-2.5 pl-3 shadow-card backdrop-blur supports-[backdrop-filter]:bg-white/85 sm:gap-3 sm:px-3 sm:pl-4 lg:h-16 lg:px-4 lg:pl-6 2xl:px-6 2xl:pl-8">
+          <div className="cursor-pointer rounded-pill">
+            <Logo />
+          </div>
+          <div className="h-10 w-36 animate-pulse rounded-pill bg-ink-100" />
+        </div>
+      </header>
+    }>
+      <SiteHeaderContent {...props} />
+    </Suspense>
+  );
+}
+
+function SiteHeaderContent({ onLoginClick }: SiteHeaderProps) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
@@ -95,7 +118,7 @@ export function SiteHeader({ onLoginClick }: SiteHeaderProps) {
 
   return (
     <header className="fixed top-4 left-4 right-4 z-30">
-        <div className="flex h-14 items-center justify-between gap-3 rounded-pill border border-gray-200 bg-white/95 px-3 pl-4 shadow-card backdrop-blur supports-[backdrop-filter]:bg-white/85 lg:h-16 lg:px-4 lg:pl-6">
+        <div className="flex h-16 items-center justify-between gap-3 rounded-pill border border-gray-200 bg-white/95 px-3 pl-4 shadow-card backdrop-blur supports-[backdrop-filter]:bg-white/85 sm:h-[72px] lg:h-20 lg:px-4 lg:pl-6 2xl:h-24">
           <Link
             href="/"
             aria-label="MediSign AI - Trang chủ"
@@ -238,15 +261,15 @@ export function SiteHeader({ onLoginClick }: SiteHeaderProps) {
                         className="btn-primary w-full cursor-pointer"
                         onClick={() => {
                           setOpen(false);
-                          router.push("/app");
+                          router.push("/chat");
                         }}
                       >
-                        Vào ứng dụng
+                        Mở Chat AI
                       </button>
                     </li>
                     <li className="px-2 pt-2">
                       <Link
-                        href="/app/profile"
+                        href="/profile"
                         className="block cursor-pointer rounded-pill border border-ink-200 px-4 py-3 text-center text-base font-medium text-ink-800 transition-colors duration-200 hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
                         onClick={() => setOpen(false)}
                       >

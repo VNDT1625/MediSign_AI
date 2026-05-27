@@ -162,8 +162,8 @@ function getSameOriginBase(): string {
  *      deterministic localhost fallback) so the URL passed to `fetch`
  *      is always absolute — undici (Node 18+) rejects relative URLs
  *      when no realm origin is available.
- *   3. Everything else — including `/api/drug/...` (which belongs to
- *      FastAPI's drug router, mounted at `/api/v1/api/drug/...`),
+ *   3. Everything else — including `/drug/...` (which belongs to
+ *      FastAPI's drug router, mounted at `/api/v1/drug/...`),
  *      `/auth/me`, `/consult/triage`, `/medicine/scan`, etc. — is
  *      treated as a backend path and resolved against
  *      `NEXT_PUBLIC_API_BASE_URL`.

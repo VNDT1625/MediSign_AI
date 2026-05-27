@@ -4,8 +4,8 @@ import { Logo } from "../Logo";
 export function Footer() {
   return (
     <footer className="border-t border-ink-200 bg-white">
-      <div className="container-page py-12 lg:py-14">
-        <div className="grid gap-10 lg:grid-cols-4">
+      <div className="container-page py-10 sm:py-12 lg:py-14 2xl:py-16">
+        <div className="grid gap-8 sm:grid-cols-2 sm:gap-10 lg:grid-cols-4 2xl:gap-12">
           <div>
             <Logo />
             <p className="mt-4 max-w-sm text-sm text-ink-600">
@@ -51,7 +51,7 @@ export function Footer() {
         </div>
 
         <div className="mt-10 flex flex-col items-start justify-between gap-3 border-t border-ink-200 pt-6 text-sm text-ink-500 sm:flex-row sm:items-center">
-          <p>© {new Date().getFullYear()} MediSign AI. Bác sĩ AI đồng hành cùng bạn.</p>
+          <p>© 2026 MediSign AI. Bác sĩ AI đồng hành cùng bạn.</p>
           <div className="flex flex-wrap items-center gap-4">
             <Link href="/privacy" className="hover:text-ink-800">Chính sách bảo mật</Link>
             <Link href="/terms" className="hover:text-ink-800">Điều khoản sử dụng</Link>

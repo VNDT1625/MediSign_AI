@@ -16,7 +16,7 @@ from app.services.drug_lookup_service import (
     load_drug_database
 )
 
-router = APIRouter(prefix="/api/drug", tags=["drug"])
+router = APIRouter(prefix="/drug", tags=["drug"])
 
 # ============================================================
 # MODELS
@@ -125,6 +125,7 @@ async def get_random_drugs(count: int = 5):
     """
     import random
     drug_database = load_drug_database()
+    drug_database = list(drug_database)
     random.shuffle(drug_database)
 
     drugs = drug_database[:count]
@@ -143,12 +144,12 @@ LUỒNG TÍCH HỢP VỚI QWEN2.5-VL-72B:
 
 1. User gửi ảnh thuốc lên API
 2. Qwen2.5-VL-72B extract tên thuốc từ ảnh
-3. Gọi POST /api/drug/search với drug_name
+3. Gọi POST /api/v1/drug/search với drug_name
 4. Nhận kết quả và trả lời user
 
 Ví dụ API Call:
 --------------
-POST /api/drug/search
+POST /api/v1/drug/search
 {
     "drug_name": "Paracetamol 500mg"
 }
@@ -165,7 +166,7 @@ Response:
 
 Ví dụ curl:
 -----------
-curl -X POST "http://localhost:8000/api/drug/search" \
+curl -X POST "http://localhost:8000/api/v1/drug/search" \
      -H "Content-Type: application/json" \
      -d '{"drug_name": "Paracetamol"}'
 """

@@ -19,16 +19,17 @@ run unmodified on:
 Mapping to the spec
 -------------------
 * 1.5.1 Load MedGemma 4B with 4-bit NF4 quantization (bitsandbytes).
-* 1.5.2 QLoRA: r=32, alpha=64, dropout=0.1,
-        target_modules=["q_proj", "v_proj", "k_proj", "o_proj"].
+* 1.5.2 QLoRA: r=32, alpha=64, dropout=0.05,
+        target_modules=["q_proj", "v_proj", "k_proj", "o_proj",
+        "gate_proj", "up_proj", "down_proj"].
 * 1.5.3 SFTTrainer with TrainingArguments / SFTConfig:
         max_seq_length=2048, num_train_epochs=3,
         per_device_train_batch_size=4, gradient_accumulation_steps=4,
         logging_steps=50, save_steps=500.
 * 1.6.x Save adapter to `output/medisign_medgemma4b/adapter/`,
-        keep <= 200 MB (Requirement 1.8) — the QLoRA configuration
-        produces ~120-160 MB adapters which is comfortably inside
-        budget.
+        then verify the final artifact size before release. Targeting
+        attention + MLP projections improves adaptation quality but
+        produces a larger adapter than attention-only QLoRA.
 
 Usage
 -----
@@ -44,6 +45,7 @@ Usage
 from __future__ import annotations
 
 import argparse
+import inspect
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -65,8 +67,16 @@ DEFAULT_ADAPTER_DIR = ROOT / "output/medisign_medgemma4b/adapter"
 # QLoRA hyper-parameters — Requirement 1.6
 LORA_RANK = 32
 LORA_ALPHA = 64
-LORA_DROPOUT = 0.1
-LORA_TARGET_MODULES = ["q_proj", "v_proj", "k_proj", "o_proj"]
+LORA_DROPOUT = 0.05
+LORA_TARGET_MODULES = [
+    "q_proj",
+    "v_proj",
+    "k_proj",
+    "o_proj",
+    "gate_proj",
+    "up_proj",
+    "down_proj",
+]
 
 # Training hyper-parameters — Requirement 1.7 / Task 1.5.3
 MAX_SEQ_LENGTH = 2048
@@ -77,7 +87,10 @@ LOGGING_STEPS = 50
 SAVE_STEPS = 500
 EVAL_STEPS = 500
 LEARNING_RATE = 2e-4
-WARMUP_RATIO = 0.03
+WARMUP_RATIO = 0.05
+WEIGHT_DECAY = 0.01
+NEFTUNE_NOISE_ALPHA = 5
+PACKING = True
 SAVE_TOTAL_LIMIT = 3
 SEED = 42
 
@@ -133,9 +146,34 @@ def build_bnb_config():
     )
 
 
-def build_lora_config():
-    """1.5.2 — QLoRA adapter config (rank 32 / alpha 64 / dropout 0.1)."""
+def build_lora_config(resume_from_checkpoint: str | None = None):
+    """1.5.2 — QLoRA adapter config with attention + MLP target modules.
+
+    When resuming from an existing adapter checkpoint, load the LoraConfig
+    directly from the checkpoint so r/alpha/target_modules stay consistent.
+    """
     from peft import LoraConfig  # type: ignore
+
+    if resume_from_checkpoint:
+        import os
+        adapter_cfg = os.path.join(resume_from_checkpoint, "adapter_config.json")
+        if os.path.exists(adapter_cfg):
+            import json
+            with open(adapter_cfg) as f:
+                saved = json.load(f)
+            rank = saved.get("r", LORA_RANK)
+            alpha = saved.get("lora_alpha", LORA_ALPHA)
+            dropout = saved.get("lora_dropout", LORA_DROPOUT)
+            targets = saved.get("target_modules", list(LORA_TARGET_MODULES))
+            print(f"[resume] Loaded LoRA config from checkpoint: r={rank}, alpha={alpha}")
+            return LoraConfig(
+                r=rank,
+                lora_alpha=alpha,
+                lora_dropout=dropout,
+                target_modules=targets,
+                bias="none",
+                task_type="CAUSAL_LM",
+            )
 
     return LoraConfig(
         r=LORA_RANK,
@@ -170,6 +208,8 @@ def build_training_args(cfg: TrainConfig):
         warmup_ratio=WARMUP_RATIO,
         lr_scheduler_type="cosine",
         optim="paged_adamw_8bit",
+        weight_decay=WEIGHT_DECAY,
+        neftune_noise_alpha=NEFTUNE_NOISE_ALPHA,
         bf16=True,
         fp16=False,
         logging_steps=LOGGING_STEPS,
@@ -187,11 +227,18 @@ def build_training_args(cfg: TrainConfig):
     try:
         from trl import SFTConfig  # type: ignore
 
+        sft_signature = inspect.signature(SFTConfig.__init__)
+        length_kwarg = (
+            "max_length"
+            if "max_length" in sft_signature.parameters
+            else "max_seq_length"
+        )
+
         return SFTConfig(
             **common,
-            max_seq_length=cfg.max_seq_length,
+            **{length_kwarg: cfg.max_seq_length},
             dataset_text_field="text",
-            packing=False,
+            packing=PACKING,
         )
     except ImportError:
         from transformers import TrainingArguments  # type: ignore
@@ -250,12 +297,22 @@ def load_model_and_tokenizer(model_id: str):
         # the loss mask aligned with the chat template.
         tokenizer.pad_token = tokenizer.eos_token
 
+    # Use Flash Attention 2 if available (Ampere/Ada/Blackwell), else fall back
+    # to eager. Flash-Attn 2 gives ~3-5× throughput improvement on H100/4090/5070Ti.
+    _attn_impl = "eager"
+    try:
+        import flash_attn  # noqa: F401
+        _attn_impl = "flash_attention_2"
+        print("[1.5.1] Flash Attention 2 detected — using flash_attention_2")
+    except ImportError:
+        print("[1.5.1] flash-attn not installed — using eager attention (slower)")
+
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
         quantization_config=bnb_config,
         device_map="auto",
         torch_dtype="auto",
-        attn_implementation="eager",
+        attn_implementation=_attn_impl,
     )
     model.config.use_cache = False
     model = prepare_model_for_kbit_training(
@@ -278,8 +335,8 @@ def run_training(cfg: TrainConfig) -> Path:
     print(f"[1.5.1] Loading {cfg.model_id} in 4-bit NF4 ...")
     model, tokenizer = load_model_and_tokenizer(cfg.model_id)
 
-    print("[1.5.2] Building LoRA config (r=32, alpha=64, dropout=0.1)")
-    lora_config = build_lora_config()
+    print("[1.5.2] Building LoRA config (r=32, alpha=64, dropout=0.05)")
+    lora_config = build_lora_config(resume_from_checkpoint=cfg.resume_from_checkpoint)
 
     print("[1.5.3] Building TrainingArguments / SFTConfig")
     training_args = build_training_args(cfg)
@@ -301,7 +358,7 @@ def run_training(cfg: TrainConfig) -> Path:
             max_seq_length=cfg.max_seq_length,
             tokenizer=tokenizer,
             dataset_text_field="text",
-            packing=False,
+            packing=PACKING,
         )
     else:
         # SFTConfig-aware trl still wants the tokenizer (renamed to

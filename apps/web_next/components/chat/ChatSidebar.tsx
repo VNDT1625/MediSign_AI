@@ -18,7 +18,7 @@ import {
   HelpIcon,
   FontSizeIcon
 } from "./icons";
-import { COMM_MODES, type CommMode } from "./mock";
+import { COMM_MODES, OUTPUT_MODES, type CommMode, type OutputMode } from "./mock";
 
 const MODE_ICONS: Record<CommMode, React.ComponentType<{ size?: number }>> = {
   text: TextIcon,
@@ -47,15 +47,49 @@ export interface ChatSidebarProps {
    * server-side history (which is empty in Phase 1).
    */
   sessionTurns?: SessionTurn[];
+  /** Cách user nhập (input). */
+  activeMode?: CommMode;
+  onModeChange?: (mode: CommMode) => void;
+  /** Cách AI trả lời (output) — pick độc lập với activeMode. */
+  outputMode?: OutputMode;
+  onOutputModeChange?: (mode: OutputMode) => void;
+  /** Toggle chữ to cho người cao tuổi / nhìn kém. */
+  elderly?: boolean;
+  onElderlyChange?: (enabled: boolean) => void;
 }
 
 // ---------------------------------------------------------------------------
 // ChatSidebar
 // ---------------------------------------------------------------------------
 
-export function ChatSidebar({ sessionTurns = [] }: ChatSidebarProps) {
-  const [activeMode, setActiveMode] = useState<CommMode>("text");
-  const [elderly, setElderly] = useState(false);
+export function ChatSidebar({
+  sessionTurns = [],
+  activeMode: controlledMode,
+  onModeChange,
+  outputMode: controlledOutput,
+  onOutputModeChange,
+  elderly: controlledElderly,
+  onElderlyChange
+}: ChatSidebarProps) {
+  const [internalMode, setInternalMode] = useState<CommMode>("text");
+  const [internalOutput, setInternalOutput] = useState<OutputMode>("text");
+  const [internalElderly, setInternalElderly] = useState(false);
+  const activeMode = controlledMode ?? internalMode;
+  const outputMode = controlledOutput ?? internalOutput;
+  const elderly = controlledElderly ?? internalElderly;
+  const selectMode = (next: CommMode) => {
+    setInternalMode(next);
+    onModeChange?.(next);
+  };
+  const selectOutput = (next: OutputMode) => {
+    setInternalOutput(next);
+    onOutputModeChange?.(next);
+  };
+  const toggleElderly = () => {
+    const next = !elderly;
+    setInternalElderly(next);
+    onElderlyChange?.(next);
+  };
 
   const hasSessionTurns = sessionTurns.length > 0;
 
@@ -142,10 +176,10 @@ export function ChatSidebar({ sessionTurns = [] }: ChatSidebarProps) {
 
       {/* Chân sidebar — 4 mode + tiện ích, gọn trong border-top */}
       <div className="space-y-3 border-t border-gray-200 p-3">
-        {/* 4 chế độ giao tiếp */}
-        <section aria-label="Chế độ giao tiếp">
+        {/* INPUT — bạn nói với AI bằng */}
+        <section aria-label="Cách bạn nói với AI">
           <h2 className="px-1 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-            Chế độ giao tiếp
+            Bạn nói với AI bằng
           </h2>
           <div className="grid grid-cols-4 gap-1.5">
             {COMM_MODES.map((m) => {
@@ -156,7 +190,7 @@ export function ChatSidebar({ sessionTurns = [] }: ChatSidebarProps) {
                   key={m.id}
                   type="button"
                   aria-pressed={active}
-                  onClick={() => setActiveMode(m.id)}
+                  onClick={() => selectMode(m.id)}
                   title={m.label}
                   className={`flex h-12 flex-col items-center justify-center gap-0.5 rounded-xl border text-[11px] font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-1 ${
                     active
@@ -166,6 +200,34 @@ export function ChatSidebar({ sessionTurns = [] }: ChatSidebarProps) {
                 >
                   <Icon size={18} />
                   {m.label}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* OUTPUT — AI trả lời bằng */}
+        <section aria-label="Cách AI trả lời">
+          <h2 className="px-1 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+            AI trả lời bằng
+          </h2>
+          <div className="grid grid-cols-3 gap-1.5">
+            {OUTPUT_MODES.map((om) => {
+              const active = outputMode === om.id;
+              return (
+                <button
+                  key={om.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => selectOutput(om.id)}
+                  title={om.hint}
+                  className={`flex h-11 items-center justify-center rounded-xl border text-[12px] font-semibold transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1 ${
+                    active
+                      ? "border-emerald-600 bg-emerald-600 text-white shadow-sm"
+                      : "border-gray-200 bg-white text-slate-700 hover:border-emerald-100 hover:bg-emerald-50 hover:text-emerald-700"
+                  }`}
+                >
+                  {om.label}
                 </button>
               );
             })}
@@ -189,7 +251,7 @@ export function ChatSidebar({ sessionTurns = [] }: ChatSidebarProps) {
               role="switch"
               aria-checked={elderly}
               aria-label="Bật chế độ cao tuổi"
-              onClick={() => setElderly((v) => !v)}
+              onClick={toggleElderly}
               className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-1 ${
                 elderly ? "bg-cyan-600" : "bg-slate-200"
               }`}

@@ -19,8 +19,13 @@ from app.database.cloud_models import (
     PostLike,
     WorkoutSession,
     FitnessGoal,
+    KBPendingRecord,
+    WeightUpdateProposal,
+    DiagnosisFeedback,
 )
 from app.core.dependencies import get_current_user
+from app.services.feedback_service import feedback_service
+from app.core.config import settings
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -40,8 +45,7 @@ class UserResponse(BaseModel):
     last_login: Optional[str]
     created_at: str
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class UserUpdateRequest(BaseModel):
@@ -202,8 +206,7 @@ class MedicineResponse(BaseModel):
     is_active: bool
     created_at: str
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class MedicineCreateRequest(BaseModel):
@@ -362,8 +365,7 @@ class HospitalResponse(BaseModel):
     has_emergency: bool
     hospital_type: Optional[str]
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class HospitalCreateRequest(BaseModel):
@@ -559,8 +561,7 @@ class CommunityPostResponse(BaseModel):
     has_medical_disclaimer: bool
     created_at: str
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class CommunityPostUpdateRequest(BaseModel):
@@ -702,8 +703,7 @@ class WorkoutSessionResponse(BaseModel):
     difficulty_rating: Optional[str]
     created_at: str
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class FitnessGoalResponse(BaseModel):
@@ -716,8 +716,7 @@ class FitnessGoalResponse(BaseModel):
     status: str
     created_at: str
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 @router.get("/workouts", response_model=List[WorkoutSessionResponse])
@@ -806,3 +805,228 @@ def get_workout_stats(
         },
     }
 
+
+
+# ══════════════════════════════════════════════════════════════
+# KB PENDING RECORDS — Review & Promote
+# ══════════════════════════════════════════════════════════════
+
+
+class KBPendingResponse(BaseModel):
+    id: int
+    source_query: str
+    disease_name: str
+    symptoms: Optional[str]
+    severity: str
+    red_flags: Optional[str]
+    home_care: Optional[str]
+    lab_tests: Optional[str]
+    status: str
+    reviewed_by: Optional[str]
+    reviewed_at: Optional[str]
+    rejection_reason: Optional[str]
+    created_at: str
+
+    model_config = {"from_attributes": True}
+
+
+@router.get("/kb-pending", response_model=List[KBPendingResponse])
+def list_kb_pending(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    status: Optional[str] = Query(None, pattern="^(pending|approved|rejected)$"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List KB pending records awaiting admin review."""
+    if current_user.account_type != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    query = db.query(KBPendingRecord)
+    if status:
+        query = query.filter(KBPendingRecord.status == status)
+    else:
+        query = query.filter(KBPendingRecord.status == "pending")
+
+    records = query.order_by(KBPendingRecord.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
+    return records
+
+
+@router.post("/kb-pending/{record_id}/approve")
+def approve_kb_record(
+    record_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Approve a KB pending record — promotes to knowledge_base.json and creates edges."""
+    if current_user.account_type != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    try:
+        result = feedback_service.approve_kb_record(
+            db=db,
+            record_id=record_id,
+            reviewed_by=current_user.id,
+            kb_path_str=settings.rag_knowledge_base_path,
+        )
+        return {"status": "approved", **result}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except RuntimeError as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+class RejectKBRequest(BaseModel):
+    reason: Optional[str] = None
+
+
+@router.post("/kb-pending/{record_id}/reject")
+def reject_kb_record(
+    record_id: int,
+    data: RejectKBRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Reject a KB pending record."""
+    if current_user.account_type != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    try:
+        feedback_service.reject_kb_record(
+            db=db,
+            record_id=record_id,
+            reviewed_by=current_user.id,
+            reason=data.reason,
+        )
+        return {"status": "rejected", "record_id": record_id}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get("/kb-pending/stats")
+def kb_pending_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get KB pending record statistics."""
+    if current_user.account_type != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    total = db.query(func.count(KBPendingRecord.id)).scalar()
+    pending = db.query(func.count(KBPendingRecord.id)).filter(KBPendingRecord.status == "pending").scalar()
+    approved = db.query(func.count(KBPendingRecord.id)).filter(KBPendingRecord.status == "approved").scalar()
+    rejected = db.query(func.count(KBPendingRecord.id)).filter(KBPendingRecord.status == "rejected").scalar()
+
+    return {"total": total, "pending": pending, "approved": approved, "rejected": rejected}
+
+
+# ══════════════════════════════════════════════════════════════
+# WEIGHT UPDATE PROPOSALS — Feedback Loop Review
+# ══════════════════════════════════════════════════════════════
+
+
+class WeightProposalResponse(BaseModel):
+    id: int
+    disease_id: str
+    symptom: str
+    current_weight: float
+    proposed_weight: float
+    direction: str
+    feedback_count: int
+    correct_count: int
+    incorrect_count: int
+    status: str
+    reviewed_by: Optional[str]
+    reviewed_at: Optional[str]
+    created_at: str
+
+    model_config = {"from_attributes": True}
+
+
+@router.get("/weight-proposals", response_model=List[WeightProposalResponse])
+def list_weight_proposals(
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    status: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """List weight update proposals generated from feedback loop."""
+    if current_user.account_type != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    query = db.query(WeightUpdateProposal)
+    if status:
+        query = query.filter(WeightUpdateProposal.status == status)
+    else:
+        query = query.filter(WeightUpdateProposal.status == "pending")
+
+    proposals = query.order_by(WeightUpdateProposal.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
+    return proposals
+
+
+@router.post("/weight-proposals/{proposal_id}/approve")
+def approve_weight_proposal(
+    proposal_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Approve weight proposal — applies weight change to disease_symptom_edges."""
+    if current_user.account_type != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    try:
+        result = feedback_service.apply_proposal(
+            db=db,
+            proposal_id=proposal_id,
+            reviewed_by=current_user.id,
+        )
+        return {"status": "approved", **result}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.post("/weight-proposals/{proposal_id}/reject")
+def reject_weight_proposal(
+    proposal_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Reject weight proposal — no weight change applied."""
+    if current_user.account_type != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    try:
+        feedback_service.reject_proposal(
+            db=db,
+            proposal_id=proposal_id,
+            reviewed_by=current_user.id,
+        )
+        return {"status": "rejected", "proposal_id": proposal_id}
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@router.get("/weight-proposals/stats")
+def weight_proposal_stats(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get weight proposal statistics."""
+    if current_user.account_type != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    total = db.query(func.count(WeightUpdateProposal.id)).scalar()
+    pending = db.query(func.count(WeightUpdateProposal.id)).filter(WeightUpdateProposal.status == "pending").scalar()
+    approved = db.query(func.count(WeightUpdateProposal.id)).filter(WeightUpdateProposal.status == "approved").scalar()
+    rejected = db.query(func.count(WeightUpdateProposal.id)).filter(WeightUpdateProposal.status == "rejected").scalar()
+
+    # Feedback stats
+    total_feedback = db.query(func.count(DiagnosisFeedback.id)).scalar()
+    correct_feedback = db.query(func.count(DiagnosisFeedback.id)).filter(DiagnosisFeedback.is_correct == True).scalar()  # noqa: E712
+    accuracy = round(correct_feedback / total_feedback, 3) if total_feedback else 0.0
+
+    return {
+        "proposals": {"total": total, "pending": pending, "approved": approved, "rejected": rejected},
+        "feedback": {"total": total_feedback, "correct": correct_feedback, "accuracy": accuracy},
+    }

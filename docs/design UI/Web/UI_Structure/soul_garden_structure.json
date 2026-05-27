@@ -1,0 +1,103 @@
+{
+  "pageName": "Soul Garden",
+  "layout": "Three-Column Layout (Sidebar-Main-Sidebar)",
+  "theme": {
+    "primaryColor": "#059669",
+    "backgroundColor": "#F0FDF4",
+    "cardRadius": "16px"
+  },
+  "header": {
+    "logo": "MediSign AI",
+    "nav": ["Home", "Chat AI", "Tủ thuốc", "Soul Garden", "Hồ sơ"],
+    "user": "Nguyễn Minh Anh"
+  },
+  "components": [
+    {
+      "id": "sidebar_left",
+      "width": "18%",
+      "label": "Soul Garden Menu",
+      "items": [
+        { "id": "overview", "label": "Tổng quan", "icon": "Home", "active": true },
+        { "id": "mood_garden", "label": "Vườn cảm xúc", "icon": "Garden" },
+        { "id": "diary", "label": "Nhật ký", "icon": "Book" },
+        { "id": "relaxation", "label": "Bài tập thư giãn", "icon": "Yoga" },
+        { "id": "habits", "label": "Thói quen lành mạnh", "icon": "Leaf" },
+        { "id": "meditation", "label": "Âm nhạc & Thiền", "icon": "Music" },
+        { "id": "insights", "label": "Insight của bạn", "icon": "Chart" }
+      ],
+      "bottomAction": "Trồng cây mới"
+    },
+    {
+      "id": "main_content",
+      "width": "62%",
+      "sections": [
+        {
+          "id": "welcome_banner",
+          "type": "image_banner",
+          "content": {
+            "greeting": "Chào buổi sáng, An",
+            "title": "Hôm nay bạn chọn chăm sóc tâm hồn nhé.",
+            "desc": "Hãy hít thở sâu và bắt đầu một ngày thật nhẹ nhàng."
+          },
+          "action": "Bạn đã chăm sóc tâm trí 7 ngày liên tiếp"
+        },
+        {
+          "id": "mood_garden_visual",
+          "type": "3d_visualization",
+          "title": "Vườn cảm xúc của bạn",
+          "status": "Vườn của bạn đang phát triển tốt",
+          "gardenElements": [
+            { "label": "Bình yên", "level": 4, "icon": "Leaf" },
+            { "label": "Tự tin", "level": 3, "icon": "Star" },
+            { "label": "Biết ơn", "level": 3, "icon": "Heart" },
+            { "label": "Hy vọng", "level": 2, "icon": "Sprout" }
+          ],
+          "action": "Khám phá vườn"
+        },
+        {
+          "id": "quick_activities",
+          "title": "Hôm nay, bạn muốn bắt đầu với điều gì?",
+          "items": [
+            { "id": "write", "label": "Viết vài dòng", "desc": "Giải tỏa và thấu hiểu cảm xúc của bạn", "icon": "Journal" },
+            { "id": "breath", "label": "Bài tập thở", "desc": "Thư giãn cơ thể và tâm trí", "icon": "Breath" },
+            { "id": "meditate", "label": "Thiền ngắn", "desc": "3-10 phút hiện tại trọn vẹn", "icon": "Zen" },
+            { "id": "music", "label": "Âm nhạc chữa lành", "desc": "Lắng nghe và nuôi dưỡng tâm hồn", "icon": "Headphones" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sidebar_right",
+      "width": "20%",
+      "widgets": [
+        {
+          "id": "daily_quote",
+          "title": "Khoảnh khắc hôm nay",
+          "quote": "Bạn không cần phải tuyệt vời mới khởi đầu, chỉ cần tiến bộ một chút mỗi ngày là đủ.",
+          "icon": "Sun"
+        },
+        {
+          "id": "reminders",
+          "title": "Nhắc nhẹ cho bạn",
+          "items": [
+            { "label": "Viết nhật ký biết ơn", "time": "09:00", "done": true },
+            { "label": "Thở 3 phút", "time": "12:00", "done": false },
+            { "label": "Thiền buổi tối", "time": "20:00", "done": false }
+          ]
+        },
+        {
+          "id": "mood_energy",
+          "title": "Năng lượng cảm xúc",
+          "score": 78,
+          "status": "Khá tốt",
+          "desc": "Bạn đang duy trì cảm xúc ổn định. Tiếp tục chăm sóc bản thân nhé!"
+        },
+        {
+          "id": "recent_emotions",
+          "title": "Cảm xúc nổi bật gần đây",
+          "items": ["Bình yên", "Biết ơn", "Hạnh phúc", "Tự tin", "Hy vọng"]
+        }
+      ]
+    }
+  ]
+}

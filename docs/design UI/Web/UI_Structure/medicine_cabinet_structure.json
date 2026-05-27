@@ -1,0 +1,112 @@
+{
+  "pageName": "Medicine Cabinet (Tủ thuốc)",
+  "layout": "Header-Main-Sidebar Layout",
+  "theme": {
+    "primaryColor": "#3B82F6",
+    "backgroundColor": "#F8FAFC"
+  },
+  "header": {
+    "logo": "MediSign AI",
+    "nav": ["Home", "Chat AI", "Tủ thuốc", "Soul Garden", "Hồ sơ"],
+    "user": "Nguyễn Minh Anh"
+  },
+  "components": [
+    {
+      "id": "main_content",
+      "width": "75%",
+      "sections": [
+        {
+          "id": "page_header",
+          "title": "Tủ thuốc",
+          "subtitle": "Quản lý thuốc thông minh",
+          "action": "Thêm thuốc"
+        },
+        {
+          "id": "quick_stats",
+          "type": "summary_row",
+          "items": [
+            { "label": "Hôm nay", "value": 3, "unit": "loại thuốc cần uống" },
+            { "label": "Uống tiếp theo", "value": "10:00", "desc": "Còn 45 phút" }
+          ],
+          "visual": "3D Medicine Bottle Illustration"
+        },
+        {
+          "id": "content_tabs",
+          "items": ["Hôm nay", "Đang dùng", "Đơn thuốc"],
+          "active": "Hôm nay"
+        },
+        {
+          "id": "next_dose_card",
+          "title": "Uống tiếp theo",
+          "time": "10:00",
+          "medicine": {
+            "name": "Vitamin D3 1000 IU",
+            "desc": "Hỗ trợ xương & miễn dịch",
+            "dose": "1 viên",
+            "instruction": "Sau ăn sáng"
+          },
+          "action": "Đánh dấu đã uống"
+        },
+        {
+          "id": "current_medicines",
+          "title": "Thuốc đang dùng",
+          "items": [
+            { "name": "Metformin 500mg", "desc": "Điều trị tiểu đường type 2", "dose": "1 viên x 2 lần/ngày", "remaining": "Còn 18 viên" },
+            { "name": "Amlodipine 5mg", "desc": "Điều trị cao huyết áp", "dose": "1 viên x 1 lần/ngày", "remaining": "Còn 12 viên" },
+            { "name": "Omega 3", "desc": "Tốt cho tim mạch", "dose": "1 viên x 1 lần/ngày", "remaining": "Còn 25 viên" }
+          ],
+          "action": "Xem tất cả"
+        },
+        {
+          "id": "alerts",
+          "type": "banner",
+          "level": "warning",
+          "text": "Sắp hết thuốc: Metformin 500mg (Còn 5 viên)",
+          "action": "Mua thêm"
+        },
+        {
+          "id": "quick_access_cards",
+          "items": [
+            { "title": "Đơn thuốc gần đây", "desc": "Đơn ngày 12/05/2025", "count": "3 loại thuốc" },
+            { "title": "Tủ thuốc gia đình", "desc": "4 thành viên", "action": "Chia sẻ & quản lý" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sidebar_right",
+      "width": "25%",
+      "widgets": [
+        {
+          "id": "schedule_today",
+          "title": "Lịch uống hôm nay",
+          "items": [
+            { "time": "08:00", "medicine": "Metformin 500mg", "done": true },
+            { "time": "10:00", "medicine": "Vitamin D3 1000 IU", "status": "active" },
+            { "time": "13:00", "medicine": "Amlodipine 5mg", "done": false },
+            { "time": "20:00", "medicine": "Omega 3", "done": false }
+          ],
+          "action": "Xem lịch tuần"
+        },
+        {
+          "id": "inventory_summary",
+          "title": "Tóm tắt tồn kho",
+          "metrics": [
+            { "label": "loại đang dùng", "value": 6 },
+            { "label": "sắp hết", "value": 1 },
+            { "label": "đơn thuốc gần đây", "value": 2 }
+          ]
+        },
+        {
+          "id": "help_suggestions",
+          "title": "Gợi ý & hỗ trợ",
+          "items": [
+            { "label": "Đặt nhắc uống thuốc", "desc": "Không bỏ lỡ liều thuốc quan trọng" },
+            { "label": "Quản lý cho người thân", "desc": "Chia sẻ để cùng chăm sóc" },
+            { "label": "Theo dõi tồn kho", "desc": "Kiểm tra số lượng thuốc dễ dàng" }
+          ]
+        }
+      ]
+    }
+  ]
+}

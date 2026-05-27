@@ -1,4 +1,5 @@
 import 'emergency_service.dart';
+import 'real_sign_language_service.dart';
 import 'real_speech_service.dart';
 import 'real_triage_service.dart';
 import 'sign_language_service.dart';
@@ -38,10 +39,8 @@ class ServiceLocator {
   SpeechService get speech => _speech ??= RealSpeechService();
 
   /// 🤟 Sign language recognition.
-  ///
-  /// TODO: Replace MockSignLanguageService with your real implementation.
   SignLanguageService get signLanguage =>
-      _signLanguage ??= MockSignLanguageService();
+      _signLanguage ??= RealSignLanguageService();
 
   /// 🧠 AI triage analysis.
   TriageService get triage => _triage ??= RealTriageService();

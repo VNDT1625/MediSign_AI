@@ -31,10 +31,10 @@ if exist data\knowledge_base\vietnamese_symptom_phrases_w1.json del /q data\know
 
 echo.
 echo Launching Worker 0 (Key 1, even categories)...
-start "KBWorker-0" cmd /k "cd /d "c:\NDT\PJ\MediSign_AI - Copy" & set FPT_API_KEY=%FPT_API_KEY_1% & set PYTHONIOENCODING=utf-8 & python scripts\gen_rag_kb_data.py --target all --diseases-count 100 --symptoms-count 250 --worker-id 0"
+start "KBWorker-0" cmd /k "cd /d "c:\NDT\PJ\MediSign_AI - Copy" & set FPT_API_KEY=%FPT_API_KEY_1% & set PYTHONIOENCODING=utf-8 & python scripts\gen_rag_kb_data.py --target all --diseases-count 500 --symptoms-count 400 --worker-id 0"
 
 echo Launching Worker 1 (Key 2, odd categories)...
-start "KBWorker-1" cmd /k "cd /d "c:\NDT\PJ\MediSign_AI - Copy" & set FPT_API_KEY=%FPT_API_KEY_2% & set PYTHONIOENCODING=utf-8 & python scripts\gen_rag_kb_data.py --target all --diseases-count 100 --symptoms-count 250 --worker-id 1"
+start "KBWorker-1" cmd /k "cd /d "c:\NDT\PJ\MediSign_AI - Copy" & set FPT_API_KEY=%FPT_API_KEY_2% & set PYTHONIOENCODING=utf-8 & python scripts\gen_rag_kb_data.py --target all --diseases-count 500 --symptoms-count 400 --worker-id 1"
 
 echo.
 echo 2 cua so CMD da mo. Theo doi progress trong tung cua so.

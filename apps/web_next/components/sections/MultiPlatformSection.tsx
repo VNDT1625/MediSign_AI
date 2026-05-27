@@ -13,7 +13,7 @@ const STORES = [
 
 export function MultiPlatformSection() {
   return (
-    <section className="relative overflow-hidden py-16 lg:py-24">
+    <section id="multi-platform" className="relative overflow-hidden py-16 lg:py-24">
       {/* Ambient blob */}
       <div
         aria-hidden
@@ -25,7 +25,7 @@ export function MultiPlatformSection() {
       />
 
       <div className="container-page relative">
-        <div className="grid gap-10 lg:grid-cols-2 lg:items-start lg:gap-16">
+        <div className="grid gap-10 lg:grid-cols-2 lg:items-start lg:gap-16 2xl:gap-20">
           {/* Left — copy + stores */}
           <Reveal>
             <span className="badge-pill">Đa nền tảng</span>
@@ -58,21 +58,21 @@ export function MultiPlatformSection() {
               </span>
             </div>
 
-            <ul className="mt-6 grid grid-cols-2 gap-3 sm:max-w-md">
+            <ul className="mt-6 grid grid-cols-2 gap-2.5 sm:max-w-md sm:gap-3">
               {STORES.map((s) => (
                 <li key={s.name}>
                   <button
                     type="button"
-                    className="group flex w-full items-center gap-3 rounded-pill border border-ink-200 bg-white px-4 py-3 text-left shadow-soft transition-all hover:border-brand hover:shadow-card cursor-pointer"
+                    className="group flex w-full items-center gap-2.5 rounded-pill border border-ink-200 bg-white px-3 py-2.5 text-left shadow-soft transition-all hover:border-brand hover:shadow-card cursor-pointer sm:gap-3 sm:px-4 sm:py-3"
                   >
                     <span className="grid h-9 w-9 flex-none place-items-center rounded-pill bg-ink-900 text-white transition-colors group-hover:bg-brand">
                       {s.icon}
                     </span>
                     <span className="min-w-0">
-                      <span className="block text-[11px] uppercase tracking-wide text-ink-500">
+                      <span className="block text-[10px] uppercase tracking-wide text-ink-500 sm:text-[11px]">
                         {s.caption}
                       </span>
-                      <span className="block text-sm font-semibold text-ink-900">
+                      <span className="block truncate text-[13px] font-semibold text-ink-900 sm:text-sm">
                         {s.name}
                       </span>
                     </span>
@@ -94,14 +94,14 @@ export function MultiPlatformSection() {
 
 function DeviceMockups() {
   return (
-    <div className="relative mx-auto h-[400px] w-full max-w-xl">
+    <div className="relative mx-auto h-[260px] w-full max-w-[320px] sm:h-[350px] sm:max-w-md lg:h-[400px] lg:max-w-xl">
       {/* Laptop */}
       <div className="absolute inset-x-2 top-2 rounded-t-card border border-ink-200 bg-white shadow-card">
         <div className="flex items-center gap-1.5 border-b border-ink-200 px-3 py-2.5">
           <span className="h-2.5 w-2.5 rounded-full bg-danger/70" />
           <span className="h-2.5 w-2.5 rounded-full bg-warn/70" />
           <span className="h-2.5 w-2.5 rounded-full bg-success/70" />
-          <span className="ml-3 inline-block rounded-pill bg-ink-100 px-3 py-0.5 text-[10px] text-ink-500">
+          <span className="ml-3 hidden rounded-pill bg-ink-100 px-3 py-0.5 text-[10px] text-ink-600 sm:inline-block">
             medisign.ai/chat
           </span>
         </div>
@@ -145,7 +145,7 @@ function DeviceMockups() {
               <div className="rounded-card bg-white px-3 py-2 shadow-soft">
                 <div className="h-2 w-40 rounded-pill bg-ink-200" />
                 <div className="mt-1.5 h-2 w-24 rounded-pill bg-ink-200" />
-                <div className="mt-2 inline-flex items-center gap-1.5 rounded-pill bg-success-soft px-2 py-0.5 text-[10px] font-semibold text-success">
+                <div className="mt-2 inline-flex items-center gap-1.5 rounded-pill bg-success-soft px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden>
                     <path
                       d="m5 13 4 4L19 7"
@@ -164,13 +164,13 @@ function DeviceMockups() {
       {/* Laptop base */}
       <div
         aria-hidden
-        className="absolute top-[300px] mx-auto h-3 w-[103%] -translate-x-1/2 rounded-b-pill bg-ink-200"
+        className="absolute top-[180px] mx-auto h-3 w-[103%] -translate-x-1/2 rounded-b-pill bg-ink-200 sm:top-[260px] lg:top-[300px]"
         style={{ left: "50%" }}
       />
 
       {/* Phone */}
-      <div className="absolute right-2 top-16 w-[160px] rotate-[3deg] rounded-[28px] border-[6px] border-ink-900 bg-white shadow-card">
-        <div className="aspect-[9/16] overflow-hidden rounded-[20px] bg-gradient-to-b from-brand-50 to-white">
+      <div className="absolute right-0 top-8 w-[92px] rotate-[3deg] rounded-[18px] border-[3px] border-ink-900 bg-white shadow-card sm:right-2 sm:top-12 sm:w-[130px] sm:rounded-[24px] sm:border-[5px] lg:top-16 lg:w-[160px] lg:rounded-[28px] lg:border-[6px]">
+        <div className="aspect-[9/16] overflow-hidden rounded-[14px] bg-gradient-to-b from-brand-50 to-white sm:rounded-[17px] lg:rounded-[20px]">
           <div className="space-y-2 p-3">
             <div className="flex items-center justify-between">
               <span className="rounded-pill bg-brand/15 px-2.5 py-0.5 text-[10px] font-medium text-brand-700">
@@ -196,7 +196,7 @@ function DeviceMockups() {
             </div>
             <div className="flex items-center gap-1.5 rounded-pill bg-accent-soft px-2 py-1">
               <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse-soft" />
-              <span className="text-[9px] font-medium text-accent">Đang lắng nghe...</span>
+              <span className="text-[9px] font-medium text-orange-800">Đang lắng nghe...</span>
             </div>
           </div>
         </div>

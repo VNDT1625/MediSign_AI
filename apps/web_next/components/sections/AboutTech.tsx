@@ -12,8 +12,8 @@ type TechItem = {
 const TECH: TechItem[] = [
   {
     title: "Self-hosted LLM",
-    tag: "MedGemma 4 · LoRA",
-    desc: "Mô hình y khoa MedGemma 4 của Google chạy trên GPU 40GB với 4-bit quantization. Toàn bộ inference trên hạ tầng của chúng tôi — không gửi dữ liệu ra ngoài.",
+    tag: "MedGemma 1.5 4B · QLoRA",
+    desc: "google/medgemma-1.5-4b-it fine-tune QLoRA chạy trên GPU với 4-bit quantization. Toàn bộ inference trên hạ tầng của chúng tôi — không gửi dữ liệu ra ngoài.",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <rect x="3" y="6" width="18" height="12" rx="2" stroke="currentColor" strokeWidth="2" />
@@ -22,9 +22,9 @@ const TECH: TechItem[] = [
     ),
   },
   {
-    title: "RAG y khoa",
-    tag: "Retrieval-Augmented",
-    desc: "AI tra cứu tri thức y khoa đã được kiểm chứng trước khi trả lời, kèm trích dẫn nguồn — giảm hallucination và tăng độ tin cậy.",
+    title: "RAG y khoa Hybrid",
+    tag: "BM25 + Dense + RRF",
+    desc: "Hybrid retrieval BM25 + Dense embedding + Reciprocal Rank Fusion trên 128.380 records (60.472 thuốc DAV, 67.493 tương tác, 3.248 bệnh Vinmec/Hello Bacsi). AI luôn trích dẫn nguồn để giảm hallucination.",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <path d="M4 5a2 2 0 0 1 2-2h9l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
@@ -34,8 +34,8 @@ const TECH: TechItem[] = [
   },
   {
     title: "Dual LoRA Adapter",
-    tag: "Medical · Personal",
-    desc: "Hai bộ adapter chạy song song: một cho kiến thức y khoa chuẩn, một học theo ngữ cảnh từng người dùng — cá nhân hoá mà không phá vỡ tính chính xác.",
+    tag: "Medical · Psychology",
+    desc: "Hai bộ adapter QLoRA rank 32 chạy trên cùng MedGemma 1.5 4B: Medical cho tư vấn y khoa có nguồn và disclaimer, Psychology cho chăm sóc tinh thần theo phong cách OARS — tách phong cách mà không phải duy trì hai mô hình.",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <circle cx="8" cy="12" r="5" stroke="currentColor" strokeWidth="2" />

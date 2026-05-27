@@ -34,6 +34,27 @@
  *  the client refreshes slightly before the real expiry. */
 const EXPIRY_SAFETY_SECONDS = 30;
 
+/** Browser custom event fired whenever the access token changes (set/clear).
+ *
+ *  Listeners (e.g. CabinetTab's sync banner) subscribe via
+ *    `window.addEventListener("medisign:token-changed", handler)`.
+ *  No detail is included on purpose — listeners must read the current state
+ *  via `tokenStore.get()` to avoid stale-data bugs. */
+const TOKEN_CHANGED_EVENT = "medisign:token-changed";
+
+function emitTokenChanged(): void {
+  // Guard against SSR (no `window`) and very old browsers without
+  // `CustomEvent`. Listeners are best-effort and never block the store.
+  if (typeof window === "undefined" || typeof CustomEvent === "undefined") {
+    return;
+  }
+  try {
+    window.dispatchEvent(new CustomEvent(TOKEN_CHANGED_EVENT));
+  } catch {
+    // ignore — synthetic event dispatch failures are non-fatal.
+  }
+}
+
 let _accessToken: string | null = null;
 /** Absolute expiry instant in ms since epoch. `0` means "no token" / expired. */
 let _expiresAt = 0;
@@ -60,10 +81,12 @@ export const tokenStore: TokenStore = {
   set: (t: string, expiresInSec: number) => {
     _accessToken = t;
     _expiresAt = Date.now() + (expiresInSec - EXPIRY_SAFETY_SECONDS) * 1000;
+    emitTokenChanged();
   },
   isExpired: () => Date.now() >= _expiresAt,
   clear: () => {
     _accessToken = null;
     _expiresAt = 0;
+    emitTokenChanged();
   },
 };

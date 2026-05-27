@@ -2,12 +2,12 @@ export function AboutHeroVisual() {
   return (
     <div
       role="img"
-      aria-label="Sơ đồ hệ sinh thái MediSign AI: bác sĩ, người dùng và công nghệ"
-      className="relative mx-auto aspect-square w-full max-w-[440px]"
+      aria-label="Sơ đồ kiến trúc MediSign AI: Knowledge Base, MedGemma, FastAPI và Dataset Q&A y khoa"
+      className="relative mx-auto aspect-square w-full max-w-[320px] sm:max-w-[400px] lg:max-w-[440px]"
     >
       {/* Soft gradient panel */}
-      <div className="absolute inset-0 rounded-[32px] bg-gradient-to-br from-brand-50 via-white to-accent/15 shadow-card" />
-      <div className="absolute inset-0 rounded-[32px] ring-1 ring-inset ring-white/60" />
+      <div className="absolute inset-0 rounded-[24px] bg-gradient-to-br from-brand-50 via-white to-accent/15 shadow-card sm:rounded-[32px]" />
+      <div className="absolute inset-0 rounded-[24px] ring-1 ring-inset ring-white/60 sm:rounded-[32px]" />
 
       {/* Slow rotating background ring */}
       <div
@@ -32,8 +32,8 @@ export function AboutHeroVisual() {
             className="absolute -inset-6 rounded-pill bg-brand/10 blur-lg animate-pulse-soft"
             style={{ animationDelay: "-1.2s" }}
           />
-          <div className="relative grid h-24 w-24 place-items-center rounded-pill bg-brand text-white shadow-card">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <div className="relative grid h-16 w-16 place-items-center rounded-pill bg-brand text-white shadow-card sm:h-20 sm:w-20 lg:h-24 lg:w-24">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="sm:h-9 sm:w-9 lg:h-10 lg:w-10">
               <path
                 d="M12 3l8 3v5c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-3z"
                 fill="white"
@@ -48,27 +48,27 @@ export function AboutHeroVisual() {
       </div>
 
       {/* Orbiting bubbles */}
-      <Bubble label="Người dùng" sub="50K+ gia đình" pos="top-6 left-6" anim="animate-float-slow" />
+      <Bubble label="Knowledge Base" sub="128K+ records" pos="top-3 left-3 sm:top-6 sm:left-6" anim="animate-float-slow" />
       <Bubble
-        label="Bác sĩ tư vấn"
-        sub="Đang hợp tác"
-        pos="top-6 right-6"
+        label="FastAPI"
+        sub="77 endpoints"
+        pos="top-3 right-3 sm:top-6 sm:right-6"
         tone="accent"
         anim="animate-float-mid"
         delay="-1s"
       />
       <Bubble
-        label="Mô hình AI"
-        sub="MedGemma 4"
-        pos="bottom-6 left-6"
+        label="MedGemma 4B"
+        sub="QLoRA · self-hosted"
+        pos="bottom-3 left-3 sm:bottom-6 sm:left-6"
         tone="success"
         anim="animate-float-mid"
         delay="-2.2s"
       />
       <Bubble
-        label="Dữ liệu y khoa"
-        sub="18K+ cặp Q&A"
-        pos="bottom-6 right-6"
+        label="Dataset Q&A"
+        sub="17K+ cặp y khoa VN"
+        pos="bottom-3 right-3 sm:bottom-6 sm:right-6"
         anim="animate-float-fast"
         delay="-0.5s"
       />
@@ -144,15 +144,15 @@ function Bubble({
     tone === "accent" ? "bg-accent" : tone === "success" ? "bg-success" : "bg-brand";
   return (
     <div
-      className={`absolute ${pos} ${anim} flex items-center gap-2 rounded-pill bg-white/95 px-3 py-1.5 shadow-card backdrop-blur transition-transform duration-200 hover:scale-105`}
+      className={`absolute ${pos} ${anim} flex items-center gap-1.5 rounded-pill bg-white/95 px-2 py-1 shadow-card backdrop-blur transition-transform duration-200 hover:scale-105 sm:gap-2 sm:px-3 sm:py-1.5`}
       style={delay ? { animationDelay: delay } : undefined}
     >
-      <span className={`h-2.5 w-2.5 flex-none rounded-full ${dot} animate-pulse-soft`} />
+      <span className={`h-2 w-2 flex-none rounded-full ${dot} animate-pulse-soft sm:h-2.5 sm:w-2.5`} />
       <span>
-        <span className="block text-xs font-semibold leading-tight text-ink-900">
+        <span className="block text-[10px] font-semibold leading-tight text-ink-900 sm:text-xs">
           {label}
         </span>
-        <span className="block text-[11px] leading-tight text-ink-500">{sub}</span>
+        <span className="block text-[9px] leading-tight text-ink-500 sm:text-[11px]">{sub}</span>
       </span>
     </div>
   );

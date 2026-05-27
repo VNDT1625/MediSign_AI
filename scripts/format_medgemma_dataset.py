@@ -73,7 +73,7 @@ STATS_FILE = DATA_DIR / "format_stats.json"
 CANONICAL_DISCLAIMER = "Đây là gợi ý sơ bộ, không thay thế chẩn đoán bác sĩ"
 
 SPLIT_SEED = 42
-TRAIN_RATIO = 0.9
+TRAIN_RATIO = 0.85
 
 # Phrases that, if present (case-insensitive), are accepted as an existing
 # disclaimer and therefore prevent the canonical one from being appended.
@@ -271,7 +271,7 @@ def format_dataset(
     print(f"  disclaimer added:           {added}")
     print(f"  disclaimer already present: {already_present}")
 
-    print(f"[1.4.1] Splitting 90/10 with seed={seed} ...")
+    print(f"[1.4.1] Splitting 85/15 with seed={seed} ...")
     train, eval_ = split_train_eval(formatted, train_ratio=train_ratio, seed=seed)
     print(f"  train: {len(train)} ({len(train) / len(formatted):.1%})")
     print(f"  eval:  {len(eval_)} ({len(eval_) / len(formatted):.1%})")

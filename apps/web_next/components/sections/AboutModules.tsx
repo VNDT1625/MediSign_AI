@@ -16,7 +16,7 @@ const MODULES: Module[] = [
     desc: "Trợ lý y khoa hiểu tiếng Việt, kết hợp RAG với cơ sở tri thức y tế đã được kiểm chứng.",
     tone: "brand",
     bullets: [
-      "Self-hosted LLM (MedGemma 4) — không phụ thuộc API ngoài",
+      "Self-hosted LLM (MedGemma 1.5 4B) — không phụ thuộc API ngoài",
       "Phân loại khẩn cấp 3 mức Xanh / Vàng / Đỏ",
       "Trích nguồn rõ ràng, giảm hallucination",
     ],
@@ -38,8 +38,8 @@ const MODULES: Module[] = [
     tone: "accent",
     bullets: [
       "Vision-Language model đọc nhãn thuốc",
-      "Tra cứu trong CSDL 242 thuốc Việt Nam",
-      "Cảnh báo tương tác thuốc nguy hiểm",
+      "Tra cứu trong CSDL 60.472 thuốc DAV Việt Nam",
+      "67.493 cảnh báo tương tác thuốc nguy hiểm",
     ],
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">

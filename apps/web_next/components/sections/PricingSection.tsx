@@ -96,8 +96,18 @@ const PLANS: Plan[] = [
 // Helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Format số kiểu vi-VN (`199.000`) một cách deterministic — KHÔNG dùng
+ * `toLocaleString("vi-VN")` vì Node trên Windows có thể fallback sang en-US
+ * khi ICU "small" được build, làm output server (`199,000`) lệch với client
+ * Chrome (`199.000`) → React kêu "Hydration failed".
+ */
 function fmt(n: number) {
-  return n.toLocaleString("vi-VN") + "đ";
+  const sign = n < 0 ? "-" : "";
+  const abs = Math.abs(Math.trunc(n)).toString();
+  // Chèn dấu chấm mỗi 3 chữ số từ phải qua trái.
+  const grouped = abs.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return sign + grouped + "đ";
 }
 
 // ---------------------------------------------------------------------------
@@ -139,7 +149,7 @@ function IStar() {
 function BillingToggle({ yearly, onChange }: { yearly: boolean; onChange: (v: boolean) => void }) {
   return (
     <div className="flex items-center justify-center gap-3">
-      <span className={`text-[14px] font-medium transition-colors ${!yearly ? "text-slate-900" : "text-slate-400"}`}>
+      <span className={`text-[14px] font-medium transition-colors ${!yearly ? "text-slate-900" : "text-slate-600"}`}>
         Hàng tháng
       </span>
       <button
@@ -158,7 +168,7 @@ function BillingToggle({ yearly, onChange }: { yearly: boolean; onChange: (v: bo
           }`}
         />
       </button>
-      <span className={`text-[14px] font-medium transition-colors ${yearly ? "text-slate-900" : "text-slate-400"}`}>
+      <span className={`text-[14px] font-medium transition-colors ${yearly ? "text-slate-900" : "text-slate-600"}`}>
         Hàng năm
       </span>
       <span
@@ -184,7 +194,7 @@ function PlainCard({ plan, yearly }: { plan: Plan; yearly: boolean }) {
     <div className="flex h-full w-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-cyan-200 hover:shadow-md">
       {/* Header */}
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-400">
+        <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-slate-600">
           {plan.name}
         </p>
         <p className="mt-0.5 text-[13px] text-slate-500">{plan.tagline}</p>
@@ -197,7 +207,7 @@ function PlainCard({ plan, yearly }: { plan: Plan; yearly: boolean }) {
             Miễn phí
           </span>
         </div>
-        <p className="mt-1 text-[12px] text-slate-400">Không cần thẻ tín dụng</p>
+        <p className="mt-1 text-[12px] text-slate-500">Không cần thẻ tín dụng</p>
       </div>
 
       <div className="my-5 h-px bg-slate-100" />
@@ -236,7 +246,7 @@ function FeaturedCard({ plan, yearly }: { plan: Plan; yearly: boolean }) {
       {/* Badge nổi lên trên đỉnh card, không bị che */}
       {plan.badge && (
         <div className="flex justify-center">
-          <span className="relative z-10 -mb-3 inline-flex items-center gap-1.5 rounded-full bg-amber-400 px-3.5 py-1 text-[12px] font-bold text-white shadow-md">
+          <span className="relative z-10 -mb-3 inline-flex items-center gap-1.5 rounded-full bg-amber-200 px-3.5 py-1 text-[12px] font-bold text-amber-900 shadow-md">
             <IStar />
             {plan.badge}
           </span>
@@ -251,10 +261,10 @@ function FeaturedCard({ plan, yearly }: { plan: Plan; yearly: boolean }) {
 
       {/* Header */}
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/50">
+        <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/80">
           {plan.name}
         </p>
-        <p className="mt-0.5 text-[13px] text-white/70">{plan.tagline}</p>
+        <p className="mt-0.5 text-[13px] text-white/80">{plan.tagline}</p>
       </div>
 
       {/* Price */}
@@ -264,7 +274,7 @@ function FeaturedCard({ plan, yearly }: { plan: Plan; yearly: boolean }) {
             {price !== null ? fmt(price) : "Miễn phí"}
           </span>
           {price !== null && (
-            <span className="mb-1 text-[14px] text-white/60">/ tháng</span>
+            <span className="mb-1 text-[14px] text-white/80">/ tháng</span>
           )}
         </div>
         {yearly && price !== null && (
@@ -273,7 +283,7 @@ function FeaturedCard({ plan, yearly }: { plan: Plan; yearly: boolean }) {
           </p>
         )}
         {!yearly && (
-          <p className="mt-1 text-[12px] text-white/50">
+          <p className="mt-1 text-[12px] text-white/80">
             hoặc {fmt(plan.yearlyPrice!)} / tháng khi trả năm
           </p>
         )}
@@ -297,12 +307,12 @@ function FeaturedCard({ plan, yearly }: { plan: Plan; yearly: boolean }) {
       <div className="mt-7">
         <button
           type="button"
-          className="inline-flex h-12 w-full cursor-pointer items-center justify-center rounded-xl bg-emerald-500 text-[14px] font-bold text-white shadow-lg shadow-emerald-500/30 transition-all duration-200 hover:bg-emerald-400 hover:shadow-xl active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-cyan-700"
+          className="inline-flex h-12 w-full cursor-pointer items-center justify-center rounded-xl bg-emerald-700 text-[14px] font-bold text-white shadow-lg shadow-emerald-700/30 transition-all duration-200 hover:bg-emerald-800 hover:shadow-xl active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-cyan-700"
         >
           {plan.cta}
         </button>
         {plan.ctaNote && (
-          <p className="mt-2 text-center text-[12px] text-white/50">{plan.ctaNote}</p>
+          <p className="mt-2 text-center text-[12px] text-white/80">{plan.ctaNote}</p>
         )}
       </div>
       </div>
@@ -322,7 +332,7 @@ function PremiumCard({ plan, yearly }: { plan: Plan; yearly: boolean }) {
     <div className="flex h-full w-full flex-col rounded-2xl border border-teal-100 bg-gradient-to-b from-slate-50 to-teal-50/40 p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-teal-300 hover:shadow-md">
       {/* Header */}
       <div>
-        <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-teal-500">
+        <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-teal-700">
           {plan.name}
         </p>
         <p className="mt-0.5 text-[13px] text-slate-500">{plan.tagline}</p>
@@ -335,7 +345,7 @@ function PremiumCard({ plan, yearly }: { plan: Plan; yearly: boolean }) {
             {price !== null ? fmt(price) : "Miễn phí"}
           </span>
           {price !== null && (
-            <span className="mb-1 text-[14px] text-slate-400">/ tháng</span>
+            <span className="mb-1 text-[14px] text-slate-500">/ tháng</span>
           )}
         </div>
         {yearly && price !== null && (
@@ -344,7 +354,7 @@ function PremiumCard({ plan, yearly }: { plan: Plan; yearly: boolean }) {
           </p>
         )}
         {!yearly && (
-          <p className="mt-1 text-[12px] text-slate-400">
+          <p className="mt-1 text-[12px] text-slate-500">
             hoặc {fmt(plan.yearlyPrice!)} / tháng khi trả năm
           </p>
         )}
@@ -373,7 +383,7 @@ function PremiumCard({ plan, yearly }: { plan: Plan; yearly: boolean }) {
           {plan.cta}
         </button>
         {plan.ctaNote && (
-          <p className="mt-2 text-center text-[12px] text-slate-400">{plan.ctaNote}</p>
+          <p className="mt-2 text-center text-[12px] text-slate-500">{plan.ctaNote}</p>
         )}
       </div>
     </div>
@@ -411,12 +421,12 @@ export function PricingSection() {
         <Reveal
           as="ul"
           stagger
-          className="mx-auto mt-10 grid max-w-5xl items-end gap-5 lg:grid-cols-3"
+          className="mx-auto mt-10 grid max-w-5xl items-end gap-5 sm:grid-cols-2 lg:grid-cols-3"
         >
           {PLANS.map((plan, i) => (
             <li
               key={plan.id}
-              className="reveal flex"
+              className={`reveal flex ${plan.variant === "featured" ? "sm:col-span-2 lg:col-span-1" : ""}`}
               style={{ ["--reveal-i" as any]: i }}
             >
               {plan.variant === "featured" ? (
@@ -431,7 +441,7 @@ export function PricingSection() {
         </Reveal>
 
         {/* Trust signals */}
-        <Reveal className="mt-10 flex flex-wrap items-center justify-center gap-6 text-[13px] text-slate-400">
+        <Reveal className="mt-10 flex flex-wrap items-center justify-center gap-6 text-[13px] text-slate-500">
           {[
             { icon: "M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z", label: "Bảo mật dữ liệu y tế" },
             { icon: "M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z", label: "Không cần thẻ tín dụng" },

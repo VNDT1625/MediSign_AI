@@ -25,3 +25,4 @@ datasets>=3.0
 sentencepiece
 protobuf
 huggingface_hub>=0.26
+openai>=1.0

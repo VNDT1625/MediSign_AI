@@ -50,142 +50,107 @@ export function DownloadHeroVisual() {
       aria-label="Mockup MediSign AI trên điện thoại với bác sĩ AI đang trò chuyện"
       onMouseMove={handleMove}
       onMouseLeave={handleLeave}
-      className="relative mx-auto h-[480px] w-full max-w-[480px]"
+      className="relative mx-auto h-[360px] w-full max-w-[580px] sm:h-[420px] lg:h-[480px]"
       style={{ perspective: "1200px" }}
     >
-      {/* Floating brand blobs in the back */}
-      <div
-        aria-hidden="true"
-        className="anim-blob-drift absolute -left-6 top-2 h-40 w-40 rounded-full bg-brand/15 blur-3xl"
-      />
-      <div
-        aria-hidden="true"
-        className="anim-blob-drift absolute right-0 bottom-2 h-44 w-44 rounded-full bg-accent/15 blur-3xl"
-        style={{ animationDelay: "-4s" }}
-      />
+      {/* Ambient blobs */}
+      <div aria-hidden="true" className="anim-blob-drift absolute -left-8 top-0 h-32 w-32 rounded-full bg-brand/10 blur-3xl sm:h-48 sm:w-48" />
+      <div aria-hidden="true" className="anim-blob-drift absolute -right-4 bottom-0 h-32 w-32 rounded-full bg-accent/10 blur-3xl sm:h-48 sm:w-48" style={{ animationDelay: "-5s" }} />
 
-      {/* Soft gradient backdrop */}
+      {/* ── Desktop card — gần hơn, chiếm gần hết chiều rộng ── */}
       <div
         aria-hidden="true"
-        className="absolute inset-6 rounded-[36px] bg-gradient-to-br from-brand-50 via-white to-accent/15 shadow-card"
-      />
-      <div
-        aria-hidden="true"
-        className="absolute inset-6 rounded-[36px] ring-1 ring-inset ring-white/60"
-      />
-
-      {/* Phone mockup — chính giữa, có parallax + float + glow ring */}
-      <div
-        className="anim-float-slow absolute left-1/2 top-12 w-[218px] -translate-x-1/2"
+        className="absolute left-0 top-2 w-[88%] overflow-hidden rounded-[16px] shadow-[0_8px_40px_-12px_rgba(15,23,42,0.22)] ring-1 ring-ink-200/60"
         style={{
-          transform: `translateX(-50%) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
-          transformStyle: "preserve-3d",
-          transition: "transform 220ms cubic-bezier(0.22,1,0.36,1)",
+          transform: `rotateX(${tilt.x * 0.35}deg) rotateY(${tilt.y * 0.35}deg)`,
+          transition: "transform 240ms cubic-bezier(0.22,1,0.36,1)",
+          zIndex: 1,
         }}
       >
-        <div className="anim-glow-ring rounded-[36px]">
-          <div className="rounded-[32px] border-[8px] border-ink-900 bg-white shadow-card">
-            {/* Notch */}
-            <div className="mx-auto h-1.5 w-14 rounded-full bg-ink-700/60" />
-            <div className="aspect-[9/19] overflow-hidden rounded-[20px] bg-gradient-to-b from-brand-50 to-white">
-              <div className="space-y-2.5 p-3">
-                <div className="flex items-center justify-between">
-                  <span className="rounded-pill bg-white px-2.5 py-1 text-[10px] font-semibold text-brand-700 shadow-soft">
-                    MediSign AI
-                  </span>
-                  <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-brand-700 shadow-soft">
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      aria-hidden="true"
-                    >
-                      <circle
-                        cx="12"
-                        cy="8"
-                        r="3"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      />
-                      <path
-                        d="M5 20c1-4 4-6 7-6s6 2 7 6"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </span>
-                </div>
+        {/* Title bar */}
+        <div className="flex items-center gap-1.5 border-b border-ink-100 bg-white px-3 py-2">
+          <span className="h-2.5 w-2.5 rounded-full bg-[#FF5F57]" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#FEBC2E]" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#28C840]" />
+          <div className="ml-2 flex flex-1 items-center gap-1.5 rounded-full border border-ink-200 bg-ink-50 px-3 py-1">
+            {/* Lock icon */}
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="flex-none text-ink-400">
+              <rect x="5" y="11" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="2"/>
+              <path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
+            <span className="text-[10.5px] font-medium tracking-tight text-ink-600">medisign.ai</span>
+          </div>
+        </div>
+        {/* Screenshot full width */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="https://pub-9e85fcdc5e564734ac6f665ff3f54bf0.r2.dev/Screenshot%202026-05-17%20184902.png"
+          alt="Giao diện ứng dụng MediSign AI trên điện thoại"
+          className="block w-full"
+          draggable={false}
+        />
+      </div>
 
-                {/* Bubble 1 — user (luôn hiện) */}
-                <div className="rounded-card bg-white p-2.5 shadow-soft">
-                  <div className="h-1.5 w-3/4 rounded-pill bg-ink-200" />
-                  <div className="mt-1.5 h-1.5 w-1/2 rounded-pill bg-ink-200" />
-                </div>
+      {/* ── Phone — thon, cao, che góc phải desktop ── */}
+      <div
+        className="anim-float-slow absolute bottom-0 right-0 w-[100px] sm:w-[115px] lg:w-[130px]"
+        style={{
+          transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+          transformStyle: "preserve-3d",
+          transition: "transform 240ms cubic-bezier(0.22,1,0.36,1)",
+          zIndex: 10,
+        }}
+      >
+        <div className="anim-glow-ring rounded-[28px]">
+          {/* Frame — border mỏng, bo nhiều = dáng thon */}
+          <div className="overflow-hidden rounded-[24px] border-[5px] border-ink-900 bg-white shadow-[0_24px_64px_-16px_rgba(15,23,42,0.40)]">
+            {/* Notch bar */}
+            <div className="flex justify-center bg-ink-900 pb-1 pt-1">
+              <div className="h-[3px] w-8 rounded-full bg-ink-700" />
+            </div>
+            {/* Screen — tỉ lệ 9:20 = thon hơn 9:19 */}
+            <div className="bg-gradient-to-b from-brand-50 to-white px-2.5 pb-3 pt-2.5" style={{ aspectRatio: "9/20" }}>
+              {/* App header */}
+              <div className="mb-2.5 flex items-center justify-between">
+                <span className="text-[9px] font-bold text-ink-900">MediSign AI</span>
+                <span className="grid h-5 w-5 place-items-center rounded-full bg-ink-100 text-ink-500">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="12" cy="8" r="3" stroke="currentColor" strokeWidth="2" />
+                    <path d="M5 20c1-4 4-6 7-6s6 2 7 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                </span>
+              </div>
 
-                {/* Bubble 2 — bot (xuất hiện ở step >= 1) */}
-                <div
-                  className={`rounded-card bg-brand p-2.5 transition-all duration-500 ${
-                    chatStep >= 1
-                      ? "translate-y-0 opacity-100"
-                      : "translate-y-2 opacity-0"
-                  }`}
-                >
-                  <div className="h-1.5 w-3/4 rounded-pill bg-white/70" />
-                  <div className="mt-1.5 h-1.5 w-2/3 rounded-pill bg-white/70" />
-                </div>
+              {/* Bubble 1 — user */}
+              <div className="mb-1.5 rounded-lg bg-white p-2 shadow-soft">
+                <div className="h-1 w-3/4 rounded-full bg-ink-200" />
+                <div className="mt-1 h-1 w-1/2 rounded-full bg-ink-200" />
+              </div>
 
-                {/* Bubble 3 — user follow-up (xuất hiện ở step >= 2) */}
-                <div
-                  className={`rounded-card bg-white p-2.5 shadow-soft transition-all duration-500 ${
-                    chatStep >= 2
-                      ? "translate-y-0 opacity-100"
-                      : "translate-y-2 opacity-0"
-                  }`}
-                >
-                  <div className="h-1.5 w-1/2 rounded-pill bg-ink-200" />
-                  <div className="mt-1.5 h-1.5 w-3/5 rounded-pill bg-ink-200" />
-                </div>
+              {/* Bubble 2 — bot */}
+              <div className={`mb-1.5 rounded-lg bg-brand p-2 transition-all duration-500 ${chatStep >= 1 ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"}`}>
+                <div className="h-1 w-3/4 rounded-full bg-white/70" />
+                <div className="mt-1 h-1 w-2/3 rounded-full bg-white/70" />
+              </div>
 
-                {/* Mic dock — typing dots khi đang chờ bot */}
-                <div className="mt-3 flex items-center gap-2 rounded-pill bg-white px-2.5 py-2 shadow-soft">
-                  <span className="grid h-7 w-7 flex-none place-items-center rounded-pill bg-accent text-white">
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      aria-hidden="true"
-                    >
-                      <rect
-                        x="9"
-                        y="3"
-                        width="6"
-                        height="12"
-                        rx="3"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                      />
-                      <path
-                        d="M5 11a7 7 0 0 0 14 0M12 18v3"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  </span>
-                  <div className="flex flex-1 items-center gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-ink-400 animate-pulse-soft" />
-                    <span
-                      className="h-1.5 w-1.5 rounded-full bg-ink-400 animate-pulse-soft"
-                      style={{ animationDelay: "0.2s" }}
-                    />
-                    <span
-                      className="h-1.5 w-1.5 rounded-full bg-ink-400 animate-pulse-soft"
-                      style={{ animationDelay: "0.4s" }}
-                    />
-                  </div>
+              {/* Bubble 3 — user */}
+              <div className={`mb-2.5 rounded-lg bg-white p-2 shadow-soft transition-all duration-500 ${chatStep >= 2 ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"}`}>
+                <div className="h-1 w-1/2 rounded-full bg-ink-200" />
+                <div className="mt-1 h-1 w-3/5 rounded-full bg-ink-200" />
+              </div>
+
+              {/* Mic bar */}
+              <div className="flex items-center gap-1.5 rounded-full bg-white px-2 py-1.5 shadow-soft">
+                <span className="grid h-5 w-5 flex-none place-items-center rounded-full bg-accent text-white">
+                  <svg width="8" height="8" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <rect x="9" y="3" width="6" height="12" rx="3" stroke="currentColor" strokeWidth="2" />
+                    <path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                </span>
+                <div className="flex gap-0.5">
+                  <span className="h-1 w-1 rounded-full bg-ink-300 animate-pulse-soft" />
+                  <span className="h-1 w-1 rounded-full bg-ink-300 animate-pulse-soft" style={{ animationDelay: "0.2s" }} />
+                  <span className="h-1 w-1 rounded-full bg-ink-300 animate-pulse-soft" style={{ animationDelay: "0.4s" }} />
                 </div>
               </div>
             </div>
@@ -193,74 +158,33 @@ export function DownloadHeroVisual() {
         </div>
       </div>
 
-      {/* Floating bubble — top-left */}
+      {/* Chip: Đã đồng bộ — overlap góc phải title bar của web card */}
       <div
-        className="anim-float-tilt absolute left-2 top-4 flex items-center gap-2 rounded-pill bg-white px-3 py-1.5 shadow-card"
+        className="anim-float-tilt absolute right-[-12px] top-[30px] z-20 hidden items-center gap-2 rounded-full bg-white px-3 py-1.5 shadow-card sm:flex"
         style={{ animationDelay: "-1.2s" }}
       >
-        <span className="grid h-6 w-6 place-items-center rounded-full bg-success text-white">
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path
-              d="M5 12l4 4L19 6"
-              stroke="currentColor"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+        <span className="grid h-5 w-5 place-items-center rounded-full bg-success text-white">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M5 12l4 4L19 6" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </span>
         <span className="text-xs font-semibold text-ink-900">Đã đồng bộ</span>
       </div>
 
-      {/* Floating bubble — bottom-right */}
+      {/* Chip: Voice tiếng Việt — sát cạnh trái phone */}
       <div
-        className="anim-float-tilt absolute right-2 bottom-12 flex items-center gap-2 rounded-pill bg-white px-3 py-1.5 shadow-card"
+        className="anim-float-tilt absolute bottom-[100px] right-[100px] z-20 hidden items-center gap-2 rounded-full bg-white px-3 py-1.5 shadow-card sm:bottom-[150px] sm:right-[124px] sm:flex"
         style={{ animationDelay: "-3.6s" }}
       >
-        <span className="grid h-6 w-6 place-items-center rounded-full bg-brand text-white">
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path
-              d="M3 12l18-8-8 18-2-8-8-2z"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+        <span className="grid h-5 w-5 place-items-center rounded-full bg-brand text-white">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M3 12l18-8-8 18-2-8-8-2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </span>
         <span className="text-xs font-semibold text-ink-900">Voice tiếng Việt</span>
       </div>
 
-      {/* Floating rating chip — bottom-left, nhấn mạnh trust signal */}
-      <div className="absolute left-1 bottom-2 flex items-center gap-2 rounded-pill bg-white px-3 py-1.5 shadow-card anim-badge-pop">
-        <span className="flex items-center gap-0.5 text-warn">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <svg
-              key={i}
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path d="M12 2l2.9 6.9L22 10l-5 4.9 1.2 7L12 18.6 5.8 22 7 14.9 2 10l7.1-1.1L12 2z" />
-            </svg>
-          ))}
-        </span>
-        <span className="text-xs font-semibold text-ink-900">4.9 / 5</span>
-      </div>
+
     </div>
   );
 }

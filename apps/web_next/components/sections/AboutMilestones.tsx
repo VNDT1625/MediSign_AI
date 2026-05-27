@@ -19,13 +19,13 @@ const MILESTONES: Milestone[] = [
   {
     year: "2025 Q4",
     title: "Dữ liệu y khoa",
-    desc: "Thu thập, dịch và làm sạch hơn 18,764 cặp Q&A y khoa Việt từ MedQuAD, ChatDoctor và nguồn tự tạo.",
+    desc: "Thu thập, dịch và làm sạch 17.263 cặp Q&A y khoa Việt (sau dedup từ 35.513 records) từ MedQuAD, ChatDoctor và nguồn tự tạo.",
     status: "done",
   },
   {
     year: "2026 Q1",
     title: "Huấn luyện AI",
-    desc: "Fine-tune MedGemma 4 với 4-bit quantization và Dual LoRA Adapter — chạy được trên 1 GPU 40GB.",
+    desc: "Fine-tune google/medgemma-1.5-4b-it với QLoRA 4-bit và Dual LoRA Medical/Psychology. Xây dựng RAG knowledge base 128.380 records hợp nhất từ DAV (thuốc), Vinmec & Hello Bacsi (bệnh thường gặp) và hướng dẫn y tế công khai.",
     status: "done",
   },
   {
@@ -51,11 +51,11 @@ const STATUS_DOT: Record<Milestone["status"], string> = {
 const STATUS_CHIP: Record<Milestone["status"], { label: string; className: string }> = {
   done: {
     label: "Hoàn thành",
-    className: "bg-success-soft text-success",
+    className: "bg-success-soft text-success-900",
   },
   doing: {
     label: "Đang làm",
-    className: "bg-accent-soft text-accent",
+    className: "bg-accent-soft text-accent-800",
   },
   next: {
     label: "Sắp tới",

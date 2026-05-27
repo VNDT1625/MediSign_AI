@@ -11,10 +11,13 @@ Inputs and outputs are identical on every environment:
 
 | Path | Purpose |
 | ---- | ------- |
-| `data/training_clean/medgemma_4b/train.jsonl` | 14 756 chat-templated training records (Task 1.4 output). |
-| `data/training_clean/medgemma_4b/eval.jsonl`  | 1 640 eval records. |
+| `data/training_clean/medgemma_4b/medical_train.jsonl` | 15,693 chat-templated training records (Medical adapter, Task 1.4 output). |
+| `data/training_clean/medgemma_4b/medical_eval.jsonl`  | 2,770 eval records (Medical adapter). |
+| `data/training_clean/medgemma_4b/psychology_train.jsonl` | 1,201 OARS records (Psychology adapter, DeepSeek-regenerated). |
+| `data/training_clean/medgemma_4b/psychology_eval.jsonl` | 212 eval records (Psychology adapter). |
+| `output/medisign-medgemma4b-adapter/` | Final Medical LoRA adapter saved with `save_pretrained` (Requirement 1.8). |
+| `output/medisign_medgemma4b_psychology/adapter/` | Final Psychology LoRA adapter. |
 | `output/medisign_medgemma4b/checkpoints/` | Step-checkpointed training state (auto-rotated, max 3). |
-| `output/medisign_medgemma4b/adapter/` | Final LoRA adapter saved with `save_pretrained` (Requirement 1.8). |
 
 ## Prerequisite: accept the MedGemma terms
 
@@ -39,8 +42,10 @@ model load.
 ## Run on Kaggle (free 2× T4)
 
 Kaggle gives you 30 hours/week of free 2× T4 (16 GB × 2 = 32 GB
-aggregate). One full 3-epoch pass over 14 756 records takes ~4-5 hours
-on this hardware.
+aggregate). One full 3-epoch pass over 15,693 medical records takes
+~4-5 hours on this hardware. The psychology pass (1,201 records,
+4-5 epochs depending on entry point) takes ~30 minutes on the same
+setup.
 
 1. Push this repo to a private GitHub repo, then create a **Kaggle
    Dataset** that mirrors it (one-time upload). This avoids re-uploading
@@ -132,10 +137,27 @@ python scripts/train_qlora_medgemma.py
 python scripts/train_qlora_medgemma.py --max_steps 5
 ```
 
-The final adapter ends up in `output/medisign_medgemma4b/adapter/`.
-Its size budget is 200 MB (Requirement 1.8) — the QLoRA config in this
-repo (rank 32, four target modules) typically produces 120-160 MB
-adapters.
+The final adapter ends up in `output/medisign_medgemma4b/adapter/` (manual default;
+override via `--adapter_dir` to align with the production layouts under
+`output/medisign-medgemma4b-adapter/` for Medical or
+`output/medisign_medgemma4b_psychology/adapter/` for Psychology).
+This script defaults to **rank 32 LoRA** across attention and MLP projections
+(`q_proj`, `k_proj`, `v_proj`, `o_proj`, `gate_proj`, `up_proj`,
+`down_proj`) with `packing=True`, `weight_decay=0.01`,
+`neftune_noise_alpha=5`, and `warmup_ratio=0.05`. The production
+notebooks and `scripts/cloud/h100_train_medical.py` use a smaller LoRA
+(rank 16, alpha 32) — the resulting adapter is smaller, so verify the
+zipped artifact size before release.
+
+> **Note on currently deployed adapters.** The Medical adapter currently
+> sitting in `output/medisign-medgemma4b-adapter/` (and pushed to
+> `thuaannn/medisign-medgemma4b-adapter` on Hugging Face) was trained
+> with **r=64, alpha=64, dropout=0.05** (~250 MB), which does not match
+> the default of any training script in the current repo. Re-running the
+> pipeline with the scripts above will produce a smaller adapter (r=16
+> via the cloud script, or r=32 via the manual script). The Psychology
+> adapter on disk uses r=8, alpha=16, dropout=0.1 — matching
+> `scripts/cloud/rtx4090_train_psychology.py` defaults.
 
 ---
 
@@ -146,9 +168,16 @@ python scripts/train_qlora_medgemma.py [OPTIONS]
 
   --model_id TEXT                   default: google/medgemma-1.5-4b-it
   --train_file PATH                 default: data/training_clean/medgemma_4b/train.jsonl
+                                    (legacy combined; use medical_train.jsonl or
+                                     psychology_train.jsonl for the dual-adapter setup)
   --eval_file PATH                  default: data/training_clean/medgemma_4b/eval.jsonl
+                                    (legacy combined; pair with medical_eval.jsonl
+                                     or psychology_eval.jsonl as appropriate)
   --output_dir PATH                 default: output/medisign_medgemma4b/checkpoints
   --adapter_dir PATH                default: output/medisign_medgemma4b/adapter
+                                    (override to output/medisign-medgemma4b-adapter
+                                     for Medical, or output/medisign_medgemma4b_psychology/adapter
+                                     for Psychology)
   --num_epochs FLOAT                default: 3
   --max_seq_length INT              default: 2048
   --per_device_batch_size INT       default: 4

@@ -2,9 +2,9 @@ import { Reveal } from "@/components/Reveal";
 
 export function CTABanner({ onCta }: { onCta?: () => void }) {
   return (
-    <section className="pb-16 lg:pb-20">
+    <section id="cta" className="pb-16 lg:pb-20 2xl:pb-24">
       <div className="container-page">
-        <Reveal className="relative overflow-hidden rounded-[28px] bg-gradient-to-r from-[#0B3A8C] via-brand to-[#0F4FBF] px-6 py-8 shadow-card lg:px-10">
+        <Reveal className="relative overflow-hidden rounded-[20px] bg-gradient-to-r from-[#0B3A8C] via-brand to-[#0F4FBF] px-5 py-7 shadow-card sm:rounded-[28px] sm:px-6 sm:py-8 lg:px-10">
           {/* Animated ambient glow */}
           <div
             aria-hidden="true"
@@ -16,9 +16,9 @@ export function CTABanner({ onCta }: { onCta?: () => void }) {
             style={{ animationDelay: "-5s" }}
           />
 
-          <div className="relative grid items-center gap-6 lg:grid-cols-[1fr_auto] lg:gap-10">
-            <div className="flex items-center gap-5">
-              <div className="hidden h-24 w-24 flex-none rounded-card bg-white/10 ring-1 ring-inset ring-white/20 sm:grid sm:place-items-center">
+          <div className="relative grid items-center gap-5 sm:gap-6 lg:grid-cols-[1fr_auto] lg:gap-10">
+            <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-5">
+              <div className="hidden h-20 w-20 flex-none rounded-card bg-white/10 ring-1 ring-inset ring-white/20 sm:grid sm:place-items-center lg:h-24 lg:w-24">
                 <span className="grid h-12 w-12 place-items-center rounded-pill bg-white text-brand-700 shadow-soft">
                   <svg
                     width="22"
@@ -37,12 +37,12 @@ export function CTABanner({ onCta }: { onCta?: () => void }) {
                 </span>
               </div>
               <div>
-                <h2 className="text-2xl font-bold leading-tight text-white sm:text-3xl">
+                <h2 className="text-[22px] font-bold leading-tight text-white sm:text-2xl lg:text-3xl">
                   Sức khoẻ của bạn,
-                  <br />
-                  ưu tiên hàng đầu của chúng tôi.
+                  <br className="hidden sm:block" />
+                  <span className="sm:hidden"> </span>ưu tiên hàng đầu của chúng tôi.
                 </h2>
-                <p className="mt-2 text-sm text-white/80">
+                <p className="mt-2 text-[14px] text-white/85 sm:text-sm sm:text-white/80">
                   Bắt đầu chăm sóc sức khoẻ cùng bác sĩ AI của bạn — MediSign AI luôn đồng hành.
                 </p>
               </div>
@@ -50,7 +50,7 @@ export function CTABanner({ onCta }: { onCta?: () => void }) {
             <button
               type="button"
               onClick={onCta}
-              className="card-lift group inline-flex items-center justify-center gap-2 self-start rounded-pill bg-white px-7 py-3.5 text-base font-semibold text-brand-700 shadow-soft hover:bg-brand-50 lg:self-center cursor-pointer"
+              className="card-lift group inline-flex w-full items-center justify-center gap-2 rounded-pill bg-white px-7 py-3.5 text-base font-semibold text-brand-700 shadow-soft hover:bg-brand-50 sm:w-auto lg:self-center cursor-pointer"
             >
               Bắt đầu ngay
               <svg

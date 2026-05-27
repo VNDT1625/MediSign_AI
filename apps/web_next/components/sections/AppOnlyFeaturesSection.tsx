@@ -114,7 +114,7 @@ const APP_FEATURES = [
 
 export function AppOnlyFeaturesSection() {
   return (
-    <section className="relative overflow-hidden py-16 lg:py-24">
+    <section id="app-features" className="relative overflow-hidden py-16 lg:py-24">
       {/* Ambient gradient blobs */}
       <div
         aria-hidden
@@ -137,7 +137,7 @@ export function AppOnlyFeaturesSection() {
           </p>
         </Reveal>
 
-        <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:mt-12 lg:gap-8">
+        <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:mt-12 lg:gap-8 2xl:gap-10">
           {APP_FEATURES.map((feature, idx) => (
             <li key={feature.name}>
               <Reveal delay={idx * 100}>

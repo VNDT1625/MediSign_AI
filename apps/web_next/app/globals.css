@@ -14,6 +14,66 @@ html {
   scroll-behavior: smooth;
 }
 
+/* ============================================================
+ * Custom Scrollbar — tinh tế, thon gọn, phù hợp MediSign
+ * Webkit (Chrome, Edge, Safari) + Firefox
+ * ============================================================ */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #7DD3FC transparent;
+}
+
+/* Webkit — track */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Webkit — thumb */
+::-webkit-scrollbar-thumb {
+  background: #7DD3FC;
+  border-radius: 9999px;
+  transition: background 200ms ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #0284C7;
+}
+
+/* Corner giữa scrollbar ngang + dọc */
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Scrollbar nhỏ hơn cho các panel / sidebar / modal bên trong */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #BAE6FD transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #BAE6FD;
+  border-radius: 9999px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #0284C7;
+}
+
+/* Ẩn hoàn toàn scrollbar nhưng vẫn scroll được */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 html,
 body {
   background: var(--bg);
@@ -23,8 +83,23 @@ body {
 @layer base {
   body {
     @apply font-sans antialiased text-ink-800;
+    /* Desktop default 18px được preserve cho ≥ 768px (Desktop Preservation Guarantee).
+       Mobile (< md / 768px) override về 16px theo spec Requirement 5.1. */
     font-size: 18px;
     line-height: 1.6;
+  }
+  @media (max-width: 767.98px) {
+    body {
+      font-size: 16px;
+    }
+  }
+  /* text-wrap: balance cho headings ngắn, pretty cho prose body
+     để tránh orphan words. Fallback graceful nếu browser không support. */
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+  p, li {
+    text-wrap: pretty;
   }
   :focus-visible {
     @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-white;
@@ -39,10 +114,10 @@ body {
 
 @layer components {
   .container-page {
-    @apply mx-auto w-full max-w-page px-4 sm:px-6 lg:px-12;
+    @apply mx-auto w-full max-w-page px-4 sm:px-6 lg:px-12 2xl:max-w-page-xl 2xl:px-16;
   }
   .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-pill bg-brand px-6 py-3 text-base font-semibold text-white shadow-soft hover:bg-brand-700 cursor-pointer;
+    @apply inline-flex items-center justify-center gap-2 rounded-pill bg-brand-700 px-6 py-3 text-base font-semibold text-white shadow-soft hover:bg-brand-900 cursor-pointer;
   }
   .btn-accent {
     @apply inline-flex items-center justify-center gap-2 rounded-pill bg-accent px-6 py-3 text-base font-semibold text-white shadow-soft hover:bg-orange-600 cursor-pointer;
@@ -60,7 +135,7 @@ body {
     @apply inline-flex items-center gap-1.5 rounded-pill bg-brand-50 px-3 py-1 text-sm font-medium text-brand-700;
   }
   .badge-app {
-    @apply inline-flex items-center gap-1.5 rounded-pill bg-accent-soft px-3 py-1 text-sm font-medium text-accent;
+    @apply inline-flex items-center gap-1.5 rounded-pill bg-accent-soft px-3 py-1 text-sm font-medium text-accent-800;
   }
 }
 
@@ -82,7 +157,7 @@ body {
   position: absolute;
   left: -9999px;
   top: 12px;
-  background: #0284c7;
+  background: #0369a1;
   color: white;
   padding: 8px 16px;
   border-radius: 8px;
@@ -262,4 +337,23 @@ body {
     opacity: 1 !important;
     transform: none !important;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   Elderly mode — bật từ ChatPage (bám root <div class="elderly-mode">). Tăng
+   font cơ sở + min-height nút + viền focus dày để người nhìn kém dùng dễ.
+   --------------------------------------------------------------------------- */
+.elderly-mode {
+  font-size: 17px; /* gốc 14-15px → ~+2px */
+}
+.elderly-mode button:not([aria-label="Bật chế độ cao tuổi"]):not([role="switch"]) {
+  min-height: 44px; /* WCAG 2.5.5 target size 44×44 */
+}
+.elderly-mode input,
+.elderly-mode textarea {
+  min-height: 44px;
+}
+.elderly-mode :focus-visible {
+  outline: 3px solid #0891b2 !important; /* cyan-600 */
+  outline-offset: 2px !important;
 }

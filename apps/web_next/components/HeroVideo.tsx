@@ -14,16 +14,31 @@ const BULLETS = [
 ];
 
 export function HeroVideo({ onAsk }: { onAsk: (message: string) => void }) {
+  const [mounted, setMounted] = useState(false);
   const [message, setMessage] = useState("");
   const [listening, setListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const recRef = useRef<any>(null);
 
   useEffect(() => {
+    setMounted(true);
     if (typeof window === "undefined") return;
     const SR =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     setVoiceSupported(Boolean(SR));
+  }, []);
+
+  // Clean up SpeechRecognition khi unmount để tránh "stuck listening" giữa các
+  // route hoặc khi modal close.
+  useEffect(() => {
+    return () => {
+      try {
+        recRef.current?.stop?.();
+      } catch {
+        // ignore — instance có thể đã stop.
+      }
+      recRef.current = null;
+    };
   }, []);
 
   function handleSubmit(e: React.FormEvent) {
@@ -59,54 +74,57 @@ export function HeroVideo({ onAsk }: { onAsk: (message: string) => void }) {
   return (
     <section
       aria-label="Giới thiệu MediSign AI"
-      // Hero vừa khít 1 viewport, không scroll.
-      className="relative isolate flex h-[100svh] min-h-[640px] w-full flex-col overflow-hidden"
+      // Hero responsive:
+      // - Mobile (<640px): min-h-[620px] + h-[92svh] để không cắt search bar và để
+      //   thiết bị có thanh URL tự co/giãn không bị "bay" content.
+      // - Tablet trở lên: 100svh full-bleed cinematic.
+      className="relative isolate flex min-h-[600px] h-[92svh] w-full flex-col overflow-hidden sm:h-[100svh] sm:min-h-[640px]"
+      // Suppress hydration warning: một số extension trình duyệt
+      // (Bitdefender Anti-tracker, Grammarly...) tiêm attribute như
+      // `bis_skin_checked` vào DOM sau SSR, gây mismatch giả.
+      suppressHydrationWarning
     >
       {/* Background media — khung cố định full hero, video object-cover crop phần thừa.
-          Có thể phóng to/thu nhỏ (scale) và kéo lên/xuống (objectPosition) để chỉnh
-          framing. */}
+          - Mobile: objectPosition kéo lên trên (28%) để khuôn mặt bác sĩ ở giữa,
+            không bị header che.
+          - Desktop: 42% như cũ (đã tối ưu sẵn). */}
       <div className="absolute inset-0 -z-10 overflow-hidden bg-ink-900">
-        <video
-          src={HOME_VIDEO}
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          aria-hidden="true"
-          className="h-full w-full object-cover"
-          style={{
-            // Chỉnh framing tại đây:
-            // - scale: phóng to/thu nhỏ video trong khung (1 = nguyên, >1 = zoom in)
-            // - objectPosition: kéo khung nhìn (0% = top, 50% = center, 100% = bottom)
-            //   Y nhỏ hơn 50 → khung neo phía trên video → đầu doctor xuất hiện thấp
-            //   hơn trong viewport, tóc cách header.
-            transform: "scale(1)",
-            objectPosition: "center 42%"
-          }}
-        />
-        {/* Gradient mờ ở đáy — nhẹ thôi để không lấp toàn bộ video, giữ vibe glass
-            cho search bar phía dưới có "thứ" để mờ phía sau. */}
+        {mounted ? (
+          <video
+            src={HOME_VIDEO}
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            aria-hidden="true"
+            className="h-full w-full object-cover [object-position:center_28%] sm:[object-position:center_42%]"
+          />
+        ) : (
+          <div className="h-full w-full bg-ink-900" />
+        )}
+        {/* Gradient overlay — mobile cần đậm hơn ở đáy để search bar đọc rõ trên
+            background video động; desktop giữ nhẹ vì đã có glass card đỡ. */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/0 via-transparent to-white/15"
+          className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/0 via-transparent to-white/40 sm:to-white/15"
         />
       </div>
 
-      <div className="container-page flex flex-1 flex-col py-4 pt-24 lg:py-6 lg:pt-28">
+      <div className="container-page flex flex-1 flex-col py-3 pt-24 sm:py-4 sm:pt-28 lg:py-6 lg:pt-32 2xl:pt-36">
+
         {/* Khu overlay top: card glass trái + bong bóng phải */}
-        <div className="relative flex flex-1 items-start">
-          {/* Card glass trái — nghiêng nhẹ tạo chiều sâu 3D, scale 1.15 cho rõ ràng */}
+        <div className="relative flex flex-1 flex-col items-start sm:flex-row">
+          {/* Card glass trái:
+              - Mobile (<640px): full width, scale nhỏ hơn (max-w-[300px], padding gọn).
+              - Tablet (sm-lg): 360-380px, không transform.
+              - Desktop (lg+): 420px + 3D rotate-Y hover effect cinematic. */}
           <div
-            className="w-full max-w-[420px] origin-top-left scale-[1.05] lg:translate-y-[calc(5%+30px)] lg:-translate-x-[calc(20%+25px)]"
+            className="w-full max-w-[300px] sm:max-w-[360px] md:max-w-[380px] lg:max-w-[420px] lg:origin-top-left lg:scale-[1.05] lg:translate-y-[calc(5%+30px)] lg:-translate-x-[calc(20%+25px)]"
             style={{ perspective: "900px" }}
           >
             <div
-              className="transform-gpu transition-transform duration-300 will-change-transform hover:[transform:rotateY(0deg)]"
-              style={{
-                transform: "rotateY(22.4deg)",
-                transformStyle: "preserve-3d"
-              }}
+              className="transform-gpu transition-transform duration-300 will-change-transform lg:[transform:rotateY(22.4deg)] lg:[transform-style:preserve-3d] lg:hover:[transform:rotateY(0deg)]"
             >
               <GlassCard>
               {/* Logo + eyebrow nhỏ — thêm context, không phá hierarchy */}
@@ -128,7 +146,7 @@ export function HeroVideo({ onAsk }: { onAsk: (message: string) => void }) {
                 </span>
               </div>
 
-              <h1 className="text-[clamp(34px,4.3vw,54px)] font-extrabold leading-[0.96] tracking-tight text-ink-900">
+              <h1 className="text-[clamp(28px,8vw,54px)] font-extrabold leading-[0.96] tracking-tight text-ink-900 sm:text-[clamp(34px,4.3vw,54px)]">
                 <span className="block">MediSign</span>
                 <span className="block bg-gradient-to-br from-brand to-[#0EA5E9] bg-clip-text text-transparent">
                   AI
@@ -136,25 +154,25 @@ export function HeroVideo({ onAsk }: { onAsk: (message: string) => void }) {
               </h1>
               <span
                 aria-hidden="true"
-                className="mt-3 block h-[3.5px] w-[92px] rounded-pill bg-gradient-to-r from-brand via-[#3B82F6] to-accent"
+                className="mt-2 block h-[3px] w-[72px] rounded-pill bg-gradient-to-r from-brand via-[#3B82F6] to-accent sm:mt-3 sm:h-[3.5px] sm:w-[92px]"
               />
 
-              <p className="mt-4 max-w-[28ch] text-[14.5px] font-medium leading-[1.55] text-ink-800 [text-wrap:balance]">
+              <p className="mt-3 max-w-[28ch] text-[13.5px] font-medium leading-[1.55] text-ink-800 [text-wrap:balance] sm:mt-4 sm:text-[14.5px]">
                 Bác sĩ AI đồng hành đáng tin cậy, kết nối yêu thương.
               </p>
 
-              {/* 3 bullet — mỗi cái là 1 pill kính nhỏ với check tròn */}
-              <ul className="mt-5 space-y-2">
+              {/* 3 bullet — compact trên mobile, full trên desktop */}
+              <ul className="mt-4 space-y-1.5 sm:mt-5 sm:space-y-2">
                 {BULLETS.map((b) => (
                   <li
                     key={b}
-                    className="flex items-center gap-2.5 rounded-pill border border-white/70 bg-white/40 px-3 py-1.5 text-[13.5px] font-medium text-ink-800 backdrop-blur-md"
+                    className="flex items-center gap-2 rounded-pill border border-white/70 bg-white/40 px-2.5 py-1 text-[12.5px] font-medium text-ink-800 backdrop-blur-md sm:gap-2.5 sm:px-3 sm:py-1.5 sm:text-[13.5px]"
                   >
                     <span
                       aria-hidden="true"
-                      className="grid h-5 w-5 flex-none place-items-center rounded-full bg-brand/15 text-brand"
+                      className="grid h-4 w-4 flex-none place-items-center rounded-full bg-brand/15 text-brand sm:h-5 sm:w-5"
                     >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" className="h-2.5 w-2.5 sm:h-3 sm:w-3">
                         <path
                           d="M5 12l4 4L19 6"
                           stroke="currentColor"
@@ -168,6 +186,7 @@ export function HeroVideo({ onAsk }: { onAsk: (message: string) => void }) {
                   </li>
                 ))}
               </ul>
+
             </GlassCard>
             </div>
           </div>
@@ -176,11 +195,11 @@ export function HeroVideo({ onAsk }: { onAsk: (message: string) => void }) {
           <HelloBubble />
         </div>
 
-        {/* Khu bottom: search bar — dịch xuống thêm 20px so với mặc định. */}
-        <div className="mt-4 space-y-3 translate-y-[5px]">
+        {/* Khu bottom: search bar — dịch xuống ít hơn để gần web mockup hơn */}
+        <div className="mt-4 space-y-3 translate-y-[2px] sm:mt-2">
           <form
             onSubmit={handleSubmit}
-            className="mx-auto w-full max-w-[600px]"
+            className="mx-auto w-full max-w-[calc(100%-1rem)] sm:max-w-[600px]"
             aria-label="Hỏi MediSign AI"
           >
             {/* Composer pill — glassmorphism rõ:
@@ -212,8 +231,8 @@ export function HeroVideo({ onAsk }: { onAsk: (message: string) => void }) {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 type="text"
-                placeholder="Mô tả triệu chứng, hỏi đơn thuốc, hoặc bất cứ điều gì về sức khoẻ…"
-                className="relative min-w-0 flex-1 bg-transparent px-2 py-1.5 text-[14.5px] text-ink-900 placeholder:text-ink-500 focus:outline-none"
+                placeholder="Mô tả triệu chứng hoặc hỏi về sức khoẻ…"
+                className="relative min-w-0 flex-1 bg-transparent px-2 py-1.5 text-[13px] text-ink-900 placeholder:text-ink-500 focus:outline-none sm:text-[14.5px]"
               />
 
               {/* Phân cách dọc tinh tế giữa input và action buttons */}
@@ -228,7 +247,7 @@ export function HeroVideo({ onAsk }: { onAsk: (message: string) => void }) {
                 aria-pressed={listening}
                 aria-label={listening ? "Đang nghe — nhấn để dừng" : "Nhấn để nói"}
                 disabled={!voiceSupported}
-                className={`relative grid h-9 w-9 flex-none place-items-center rounded-pill transition-all duration-200 cursor-pointer ${
+                className={`relative grid h-10 w-10 flex-none place-items-center rounded-pill transition-all duration-200 cursor-pointer sm:h-9 sm:w-9 ${
                   listening
                     ? "bg-accent text-white animate-pulse-soft"
                     : "text-ink-500 hover:bg-ink-100 hover:text-brand-700"
@@ -239,7 +258,7 @@ export function HeroVideo({ onAsk }: { onAsk: (message: string) => void }) {
 
               <button
                 type="submit"
-                className="relative grid h-9 w-9 flex-none place-items-center rounded-pill bg-brand text-white shadow-soft transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 cursor-pointer"
+                className="relative grid h-10 w-10 flex-none place-items-center rounded-pill bg-brand text-white shadow-soft transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 cursor-pointer sm:h-9 sm:w-9"
                 aria-label="Gửi câu hỏi"
               >
                 <SendIcon size={18} />
@@ -254,7 +273,7 @@ export function HeroVideo({ onAsk }: { onAsk: (message: string) => void }) {
 
 function GlassCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative overflow-hidden rounded-[28px] border border-white/80 bg-white/25 p-5 shadow-card ring-1 ring-white/70 backdrop-blur-2xl backdrop-saturate-150 sm:p-6">
+    <div className="relative overflow-hidden rounded-[22px] border border-white/80 bg-white/25 p-4 shadow-card ring-1 ring-white/70 backdrop-blur-2xl backdrop-saturate-150 sm:rounded-[28px] sm:p-5 md:p-6">
       {/* Highlight ánh sáng góc trên-trái — như phản chiếu trên kính */}
       <span
         aria-hidden="true"
@@ -267,7 +286,7 @@ function GlassCard({ children }: { children: React.ReactNode }) {
       {/* Đường viền sáng nội bộ giả mép kính */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 rounded-[28px] ring-1 ring-inset ring-white/40"
+        className="pointer-events-none absolute inset-0 rounded-[22px] ring-1 ring-inset ring-white/40 sm:rounded-[28px]"
       />
       <div className="relative">{children}</div>
     </div>

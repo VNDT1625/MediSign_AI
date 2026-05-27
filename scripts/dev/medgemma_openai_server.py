@@ -35,18 +35,35 @@ class ModelRuntime:
                 str(ROOT / "output" / "medisign-medgemma4b-adapter"),
             )
         )
+        # Psychology adapter — optional second adapter
+        self.psychology_adapter_path = Path(
+            os.getenv(
+                "MEDISIGN_PSYCHOLOGY_ADAPTER_PATH",
+                str(ROOT / "output" / "medisign_medgemma4b_psychology" / "adapter"),
+            )
+        )
         self.load_in_4bit = os.getenv("MEDISIGN_LOAD_IN_4BIT", "1") != "0"
         self.max_input_tokens = int(os.getenv("MEDISIGN_MAX_INPUT_TOKENS", "4096"))
         self.tokenizer: Any | None = None
-        self.model: Any | None = None
+        self.model: Any | None = None           # medical (default)
+        self.psych_model: Any | None = None     # psychology
         self.loaded_at: float | None = None
+
+    # Maps model name sent by client → which adapter to use
+    PSYCHOLOGY_MODEL_NAMES = {"medisign-medgemma-psychology", "psychology"}
+
+    def _is_psychology(self, model_name: str) -> bool:
+        return model_name.lower() in self.PSYCHOLOGY_MODEL_NAMES
 
     def status(self) -> dict[str, Any]:
         return {
             "base_model": self.base_model,
-            "adapter_path": str(self.adapter_path),
-            "adapter_exists": self.adapter_path.exists(),
-            "loaded": self.model is not None,
+            "medical_adapter_path": str(self.adapter_path),
+            "medical_adapter_exists": self.adapter_path.exists(),
+            "medical_loaded": self.model is not None,
+            "psychology_adapter_path": str(self.psychology_adapter_path),
+            "psychology_adapter_exists": self.psychology_adapter_path.exists(),
+            "psychology_loaded": self.psych_model is not None,
             "loaded_at": self.loaded_at,
             "cuda": torch.cuda.is_available(),
             "gpu_count": torch.cuda.device_count(),
@@ -55,10 +72,11 @@ class ModelRuntime:
         }
 
     def load(self) -> None:
+        """Load medical adapter (default)."""
         if self.model is not None:
             return
         if not self.adapter_path.exists():
-            raise RuntimeError(f"Adapter path not found: {self.adapter_path}")
+            raise RuntimeError(f"Medical adapter not found: {self.adapter_path}")
         if self.load_in_4bit and not torch.cuda.is_available():
             raise RuntimeError("MEDISIGN_LOAD_IN_4BIT=1 requires a CUDA GPU")
 
@@ -79,23 +97,67 @@ class ModelRuntime:
         self.tokenizer = AutoTokenizer.from_pretrained(self.base_model, use_fast=True)
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
-        self._load_adapter_chat_template()
+        self._load_adapter_chat_template(self.adapter_path)
 
-        model = AutoModelForCausalLM.from_pretrained(
+        base = AutoModelForCausalLM.from_pretrained(
             self.base_model,
             device_map="auto",
             torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
             quantization_config=quantization_config,
             attn_implementation="eager",
         )
-        self.model = PeftModel.from_pretrained(model, str(self.adapter_path))
+        self.model = PeftModel.from_pretrained(base, str(self.adapter_path))
         self.model.eval()
         self.loaded_at = time.time()
 
-    def generate(self, request: ChatCompletionRequest) -> str:
+    def load_psychology(self) -> None:
+        """Load psychology adapter (lazy — only when first request arrives)."""
+        if self.psych_model is not None:
+            return
+        if not self.psychology_adapter_path.exists():
+            raise RuntimeError(
+                f"Psychology adapter not found: {self.psychology_adapter_path}. "
+                "Train it first or set MEDISIGN_PSYCHOLOGY_ADAPTER_PATH."
+            )
+        # Ensure base is loaded first (shares tokenizer)
         self.load()
+
+        from peft import PeftModel
+
+        print(f"Loading psychology adapter from {self.psychology_adapter_path} ...")
+        # Load base again with separate weights for second adapter
+        from transformers import AutoModelForCausalLM, BitsAndBytesConfig
+
+        quantization_config = None
+        if self.load_in_4bit:
+            quantization_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.bfloat16,
+                bnb_4bit_use_double_quant=True,
+            )
+        base2 = AutoModelForCausalLM.from_pretrained(
+            self.base_model,
+            device_map="auto",
+            torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
+            quantization_config=quantization_config,
+            attn_implementation="eager",
+        )
+        self.psych_model = PeftModel.from_pretrained(base2, str(self.psychology_adapter_path))
+        self.psych_model.eval()
+        print("Psychology adapter loaded.")
+
+    def generate(self, request: ChatCompletionRequest) -> str:
+        # Route to correct adapter based on model name in request
+        if self._is_psychology(request.model):
+            self.load_psychology()
+            active_model = self.psych_model
+        else:
+            self.load()
+            active_model = self.model
+
         assert self.tokenizer is not None
-        assert self.model is not None
+        assert active_model is not None
 
         prompt = self._build_prompt(request.messages)
         inputs = self.tokenizer(
@@ -111,7 +173,7 @@ class ModelRuntime:
         }
 
         with torch.inference_mode():
-            output_ids = self.model.generate(
+            output_ids = active_model.generate(
                 **inputs,
                 max_new_tokens=max(32, min(request.max_tokens, 2048)),
                 do_sample=request.temperature > 0,
@@ -154,8 +216,8 @@ class ModelRuntime:
             tokenize=False,
         )
 
-    def _load_adapter_chat_template(self) -> None:
-        template_path = self.adapter_path / "chat_template.jinja"
+    def _load_adapter_chat_template(self, adapter_path: Path) -> None:
+        template_path = adapter_path / "chat_template.jinja"
         if not template_path.exists() or self.tokenizer is None:
             return
         template = template_path.read_text(encoding="utf-8")
@@ -255,19 +317,29 @@ class ModelRuntime:
             print(f"MediSign Gemma3 token_type_ids patch skipped: {exc}")
 
 
+from contextlib import asynccontextmanager
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    if os.getenv("MEDISIGN_PRELOAD_ON_START", "0") == "1":
+        runtime.load()
+        # Optionally preload psychology adapter if path exists
+        if runtime.psychology_adapter_path.exists():
+            try:
+                runtime.load_psychology()
+            except Exception as exc:
+                print(f"Psychology adapter preload skipped: {exc}")
+    yield
+
+
 runtime = ModelRuntime()
-app = FastAPI(title="MediSign MedGemma OpenAI-Compatible Server")
+app = FastAPI(title="MediSign MedGemma OpenAI-Compatible Server", lifespan=lifespan)
 
 
 @app.get("/health")
 def health() -> dict[str, Any]:
     return {"status": "ok", **runtime.status()}
-
-
-@app.on_event("startup")
-def preload_on_startup() -> None:
-    if os.getenv("MEDISIGN_PRELOAD_ON_START", "0") == "1":
-        runtime.load()
 
 
 @app.post("/v1/chat/completions")
