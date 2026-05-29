@@ -12,6 +12,7 @@
 - [Kiến trúc hệ thống](#kiến-trúc-hệ-thống)
 - [Model AI — MedGemma 1.5 4B](#model-ai--medgemma-15-4b)
 - [RAG — Kho kiến thức y tế](#rag--kho-kiến-thức-y-tế)
+- [Sign Mode — Nhận diện ngôn ngữ ký hiệu (VSL)](#sign-mode--nhận-diện-ngôn-ngữ-ký-hiệu-vsl)
 - [Cơ sở dữ liệu thuốc](#cơ-sở-dữ-liệu-thuốc)
 - [Tech Stack](#tech-stack)
 - [Cấu trúc dự án](#cấu-trúc-dự-án)
@@ -37,15 +38,15 @@ Tính năng chính:
 - **SoulGarden** — hỗ trợ sức khỏe tâm thần, nhật ký cảm xúc
 - **Fitness** — theo dõi tập luyện, phát hiện tư thế bằng ML on-device
 - **Cộng đồng** — chia sẻ kinh nghiệm sức khỏe ẩn danh, có kiểm duyệt
-- **Hỗ trợ NKT** — giao diện ngôn ngữ ký hiệu, voice tiếng Việt, Elderly Mode
+- **Hỗ trợ NKT** — **Sign Mode** nhận diện ngôn ngữ ký hiệu Việt (VSL) realtime on-device + fallback Gemini Vision, voice tiếng Việt, Elderly Mode
 
 ---
 
 ## Kiến trúc hệ thống
 
 ```
-Flutter App / Next.js Web
-         │
+Flutter App / Next.js Web  ── Sign Mode (VSL): realtime TFJS on-device
+         │                     + Gemini Vision fallback (/api/sign/recognize)
          ▼
    FastAPI Backend  ──────────────────────────────────────────┐
          │                                                     │
@@ -232,6 +233,37 @@ POST /api/v1/ai/rag/rebuild
 
 ---
 
+## Sign Mode — Nhận diện ngôn ngữ ký hiệu (VSL)
+
+MediSign hỗ trợ người khiếm thính/khiếm ngôn nhập triệu chứng bằng **ngôn ngữ ký hiệu Việt Nam (VSL)** ngay trong khung chat. Tính năng nằm hoàn toàn ở web frontend (`apps/web_next`), có 2 đường nhận diện bổ trợ nhau:
+
+### 1. Realtime on-device (mặc định)
+
+`VslRecognitionService` (`lib/vsl/VslRecognitionService.ts`) chạy 100% trên trình duyệt, không gọi API:
+
+- **MediaPipe Tasks-Vision** (Hand + Face + Pose landmarker) trích keypoint mỗi frame.
+- Ghép thành feature vector **495-D** (45 pose + 126 hand + 324 face) — định nghĩa tại `lib/vsl/landmarkSpec.ts`.
+- Head-pose de-rotation (Procrustes matrix) + body-relative normalization để bất biến với góc nghiêng đầu và khoảng cách camera.
+- Sliding window 30 frame → model **Bi-LSTM** (TensorFlow.js) inference liên tục, voting + confidence/margin gate trước khi emit.
+- Component UI: `components/chat/VslRealtimeComposer.tsx` — mở camera, hiển thị ký hiệu nhận diện realtime, ghép thành câu rồi gửi vào chat.
+
+Model assets: `public/models/vsl/` (`classes.json`, `weights.json`, `weights.bin`).
+Từ vựng nạp từ `classes.json` (single source of truth) — mục tiêu giai đoạn 1 là **150 từ y tế**, mở rộng 300-500 từ ở giai đoạn sau. Code fallback 10 lớp khi chưa có manifest.
+
+### 2. Fallback Gemini Vision (quay video)
+
+Khi cần độ chính xác cao hơn hoặc thiết bị yếu, người dùng quay 1 đoạn video ngắn (< 15s, < 18MB) → gửi tới route handler `app/api/sign/recognize/route.ts`:
+
+- Server-side gọi **Google Gemini 2.5 Flash** (video understanding), trả JSON `{ text, confidence, notes }`.
+- `GOOGLE_GEMINI_API_KEY` chỉ đọc ở server (Next.js Route Handler), **không** expose ra browser — không đặt prefix `NEXT_PUBLIC_`.
+- Free tier (Dec 2025): 10 RPM / 250 RPD / 250K TPM — đủ cho demo + dev.
+
+Helper liên quan: `lib/sign/` (`recognize.ts`, `tokenize.ts`, `useVideoRecorder.ts`, `vslDictionary.ts`).
+
+> Lấy API key free tại [aistudio.google.com](https://aistudio.google.com/) → "Get API key" (không cần thẻ). Đặt vào `apps/web_next/.env.local`.
+
+---
+
 ## Cơ sở dữ liệu thuốc
 
 Backend ưu tiên file lớn nhất có sẵn, fallback về file nhỏ hơn:
@@ -279,6 +311,8 @@ Override path: `BACKEND_DRUG_DB_PATH` env var.
 | UI | React 18.3.1 + Tailwind CSS 3.4.14 |
 | Forms | react-hook-form 7 + Zod 4 |
 | Data Fetching | TanStack Query v5 |
+| VSL / On-device ML | TensorFlow.js 4.22 + MediaPipe Tasks-Vision 0.10 |
+| Sign recognition (cloud) | Google Gemini 2.5 Flash (video understanding) |
 | Testing | Vitest 3 + Testing Library + MSW 2 + Playwright |
 
 ### Mobile (`apps/mobile_flutter`) — v0.1.0+1
@@ -324,11 +358,14 @@ MediSign_AI/
 │   │   │   ├── reset-password/   # Đặt lại mật khẩu
 │   │   │   └── api/
 │   │   │       ├── auth/         # login / refresh / logout (Edge proxy)
-│   │   │       └── sign/recognize/  # Gemini Vision VSL recognizer
+│   │   │       └── sign/recognize/  # Gemini Vision VSL recognizer (fallback)
 │   │   ├── components/
+│   │   │   └── chat/             # ChatMain, VslRealtimeComposer, SignAvatar...
 │   │   ├── lib/auth/             # AuthProvider, tokenStore, fetcher
-│   │   ├── lib/sign/             # VSL parser + recognizer client
+│   │   ├── lib/vsl/              # Realtime VSL: VslRecognitionService + landmarkSpec
+│   │   ├── lib/sign/             # Video-record VSL helpers + dictionary + tokenizer
 │   │   ├── lib/voice/            # Speech recognition (vi-VN)
+│   │   ├── public/models/vsl/    # Bi-LSTM TFJS model (classes/weights)
 │   │   └── middleware.ts         # Legacy /app/* → / cleanup redirect
 │   │
 │   └── mobile_flutter/           # Flutter cross-platform app
@@ -363,18 +400,24 @@ MediSign_AI/
 │   └── knowledge_base/
 │       └── knowledge_base.json   # RAG knowledge base (128.380 records)
 │
-├── scripts/                      # Data prep, training, crawling
+├── scripts/                      # Data prep, training, crawling, QA
 │   ├── train_qlora_medgemma.py
 │   ├── train_qlora_medgemma_smoke_test.py
-│   ├── prepare_medgemma_data.py
 │   ├── format_medgemma_dataset.py
 │   ├── build_demo_knowledge_base.py
-│   ├── crawl_dav_*.py
+│   ├── serve_medgemma.py         # OpenAI-compatible runtime server
+│   ├── cloud/                    # H100/RTX4090 train + FPT Cloud deploy scripts
+│   ├── dev/                      # Local dev launchers (PowerShell) + mock model
+│   ├── qa/                       # Quality gate, doctor-review export/import
+│   ├── tests/                    # Pytest for the data/training pipeline
+│   ├── temp/                     # Scratch crawlers + VSL data tooling
 │   └── requirements_train.txt
 │
+├── notebooks/                    # train_medical_adapter.ipynb, train_psychology_adapter.ipynb
+│
 ├── output/                       # Adapter outputs (gitignored)
-│   ├── medisign_medgemma4b/adapter/
-│   └── medisign_medgemma4b_psychology/adapter/
+│   ├── medisign-medgemma4b-adapter/             # Medical (preload)
+│   └── medisign_medgemma4b_psychology/adapter/  # Psychology (lazy)
 │
 ├── docs/
 │   ├── engineering/              # api-contract, dev-setup, branching, test-strategy...
@@ -428,6 +471,7 @@ API docs: http://localhost:8000/docs
 ```bash
 cd apps/web_next
 npm install
+cp .env.local.example .env.local   # tùy chọn: thêm GOOGLE_GEMINI_API_KEY cho Sign Mode fallback
 npm run dev
 ```
 
@@ -505,6 +549,15 @@ EMAIL_PORT=587
 EMAIL_FROM_NAME=MediSign AI
 FRONTEND_BASE_URL=http://localhost:3000
 ```
+
+### Sign Mode (VSL) — Gemini Vision
+
+Đặt trong `apps/web_next/.env.local` (không phải `.env` gốc) — chỉ web frontend dùng:
+```env
+# Server-only key cho route /api/sign/recognize. KHÔNG đặt prefix NEXT_PUBLIC_.
+GOOGLE_GEMINI_API_KEY=
+```
+Nhận diện realtime on-device (TFJS + MediaPipe) không cần key này; key chỉ dùng cho đường fallback quay video.
 
 ---
 
@@ -701,6 +754,8 @@ python scripts/train_qlora_medgemma.py \
 | RAG knowledge base | ✅ Done | 128.380 records, BM25 local, auto-reload |
 | FastAPI backend | ✅ Done | Auth, triage, medicine, AI chat, admin |
 | Next.js web app | ✅ Done | Full auth flow, chat, medicine, soul-garden |
+| Sign Mode VSL (realtime on-device) | ✅ Done | TFJS Bi-LSTM + MediaPipe, wired vào chat (`VslRealtimeComposer`) |
+| Sign Mode VSL (Gemini video fallback) | ✅ Done | Route `/api/sign/recognize`, Gemini 2.5 Flash |
 | Flutter mobile | 🔄 Partial | UI done, API integration một phần (mock mode) |
 | MedGemma 1.5 4B Medical adapter | 🔜 Ready to train | 15.693 records sẵn sàng, notebook H100 sẵn |
 | MedGemma Psychology adapter | 🔜 Ready to train | 1.201 OARS records (DeepSeek-regenerated), notebook H100 sẵn |
