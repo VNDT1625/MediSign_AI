@@ -256,16 +256,13 @@ function SiteHeaderContent({ onLoginClick }: SiteHeaderProps) {
                 {isAuthenticated && (
                   <>
                     <li className="px-2 pt-2">
-                      <button
-                        type="button"
+                      <Link
+                        href="/chat"
                         className="btn-primary w-full cursor-pointer"
-                        onClick={() => {
-                          setOpen(false);
-                          router.push("/chat");
-                        }}
+                        onClick={() => setOpen(false)}
                       >
                         Mở Chat AI
-                      </button>
+                      </Link>
                     </li>
                     <li className="px-2 pt-2">
                       <Link

@@ -197,10 +197,20 @@ export function HeroVideo({ onAsk }: { onAsk: (message: string) => void }) {
 
         {/* Khu bottom: search bar — dịch xuống ít hơn để gần web mockup hơn */}
         <div className="mt-4 space-y-3 translate-y-[2px] sm:mt-2">
+          {/*
+            Composer chỉ render sau khi hydrate xong (`mounted = true` từ
+            useEffect). Lý do: <input> trong form này có placeholder đa
+            ngôn ngữ, password manager / Grammarly / autofill extension
+            chèn icon DOM node ngay khi thấy form → React hydrate so sánh
+            children của wrapper div thấy lệch số node → "Hydration failed".
+            Render trước một placeholder cùng kích thước nên không nhảy layout.
+          */}
+          {mounted ? (
           <form
             onSubmit={handleSubmit}
             className="mx-auto w-full max-w-[calc(100%-1rem)] sm:max-w-[600px]"
             aria-label="Hỏi MediSign AI"
+            suppressHydrationWarning
           >
             {/* Composer pill — glassmorphism rõ:
                 - bg trong hơn để thấy mờ video phía sau,
@@ -233,6 +243,7 @@ export function HeroVideo({ onAsk }: { onAsk: (message: string) => void }) {
                 type="text"
                 placeholder="Mô tả triệu chứng hoặc hỏi về sức khoẻ…"
                 className="relative min-w-0 flex-1 bg-transparent px-2 py-1.5 text-[13px] text-ink-900 placeholder:text-ink-500 focus:outline-none sm:text-[14.5px]"
+                suppressHydrationWarning
               />
 
               {/* Phân cách dọc tinh tế giữa input và action buttons */}
@@ -265,6 +276,13 @@ export function HeroVideo({ onAsk }: { onAsk: (message: string) => void }) {
               </button>
             </div>
           </form>
+          ) : (
+            // Placeholder cùng kích thước với composer thật để không nhảy layout.
+            <div
+              aria-hidden="true"
+              className="mx-auto h-[52px] w-full max-w-[calc(100%-1rem)] rounded-pill border border-ink-400/60 bg-white/30 ring-1 ring-inset ring-white/50 backdrop-blur-2xl backdrop-saturate-150 sm:max-w-[600px]"
+            />
+          )}
         </div>
       </div>
     </section>

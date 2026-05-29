@@ -131,6 +131,20 @@ export function LoginModal(props: {
   onClose: () => void;
   prefilledMessage?: string;
 }) {
+  // Lazy mount sau khi hydrate xong. Form login chứa <input type="password">
+  // và <input autoComplete="username"> — các password manager extension
+  // (LastPass, 1Password, Bitwarden, Dashlane, Norton, Grammarly...) tự
+  // chèn icon node vào DOM ngay khi thấy form, làm React hydrate fail
+  // ("Hydration failed because the initial UI does not match"). Bằng
+  // cách chỉ render modal sau khi hydrate (`useEffect` chỉ chạy ở client),
+  // SSR output không có form → extension không có cớ chèn → hydrate sạch.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  if (!hydrated) return null;
+
   return (
     <Suspense fallback={null}>
       <LoginModalContent {...props} />

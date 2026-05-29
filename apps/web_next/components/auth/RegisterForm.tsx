@@ -330,12 +330,12 @@ export function RegisterForm({
   // ---------------------------------------------------------------------------
 
   return (
-    <div onChange={onFieldChange}>
+    <div onChange={onFieldChange} suppressHydrationWarning>
       <StepDots current={step} total={3} />
 
       {/* ── Bước 1: Thông tin cá nhân ── */}
       {step === 1 && (
-        <form noValidate onSubmit={handleStep1} className="space-y-4">
+        <form noValidate onSubmit={handleStep1} className="space-y-4" suppressHydrationWarning>
           <p className="mb-3 text-center text-[12px] font-medium text-slate-500">
             Bước 1 · Thông tin cá nhân
           </p>
@@ -354,6 +354,7 @@ export function RegisterForm({
                 autoFocus
                 placeholder="Nguyễn Văn A"
                 className={form1.formState.errors.full_name ? inputErr : input}
+                suppressHydrationWarning
                 {...form1.register("full_name")}
               />
             </div>
@@ -373,6 +374,7 @@ export function RegisterForm({
                 autoComplete="username"
                 placeholder="vd: nguyenvana"
                 className={form1.formState.errors.username ? inputErr : input}
+                suppressHydrationWarning
                 {...form1.register("username")}
               />
             </div>
@@ -387,7 +389,7 @@ export function RegisterForm({
 
       {/* ── Bước 2: Liên hệ ── */}
       {step === 2 && (
-        <form noValidate onSubmit={handleStep2} className="space-y-4">
+        <form noValidate onSubmit={handleStep2} className="space-y-4" suppressHydrationWarning>
           <p className="mb-3 text-center text-[12px] font-medium text-slate-500">
             Bước 2 · Thông tin liên hệ
           </p>
@@ -407,6 +409,7 @@ export function RegisterForm({
                 autoFocus
                 placeholder="ban@example.com"
                 className={form2.formState.errors.email ? inputErr : input}
+                suppressHydrationWarning
                 {...form2.register("email")}
               />
             </div>
@@ -427,6 +430,7 @@ export function RegisterForm({
                 autoComplete="tel"
                 placeholder="0901234567"
                 className={form2.formState.errors.phone ? inputErr : input}
+                suppressHydrationWarning
                 {...form2.register("phone")}
               />
             </div>
@@ -446,7 +450,7 @@ export function RegisterForm({
 
       {/* ── Bước 3: Mật khẩu ── */}
       {step === 3 && (
-        <form noValidate onSubmit={handleStep3} className="space-y-4">
+        <form noValidate onSubmit={handleStep3} className="space-y-4" suppressHydrationWarning>
           <p className="mb-3 text-center text-[12px] font-medium text-slate-500">
             Bước 3 · Đặt mật khẩu
           </p>
@@ -465,6 +469,7 @@ export function RegisterForm({
                 autoFocus
                 placeholder="Tối thiểu 8 ký tự, 1 chữ hoa, 1 số"
                 className={`${form3.formState.errors.password ? inputErr : input} pr-10`}
+                suppressHydrationWarning
                 {...form3.register("password")}
               />
               <button

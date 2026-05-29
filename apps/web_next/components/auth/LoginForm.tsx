@@ -154,6 +154,10 @@ export function LoginForm({
       onSubmit={handleSubmit(onSubmit)}
       onChange={onFieldChange}
       className="space-y-4"
+      // Password manager extensions (LastPass, 1Password, Bitwarden, Dashlane,
+      // Grammarly...) chèn DOM nodes/attributes vào form và input ngay trước khi
+      // React hydrate. Suppress để mismatch giả không crash hydration.
+      suppressHydrationWarning
     >
       {/* Identifier */}
       <div>
@@ -172,6 +176,7 @@ export function LoginForm({
             aria-invalid={errors.identifier ? "true" : "false"}
             aria-describedby={errors.identifier ? "login-identifier-error" : undefined}
             className={errors.identifier ? inputErrorClasses : inputClasses}
+            suppressHydrationWarning
             {...register("identifier")}
           />
         </div>
@@ -198,6 +203,7 @@ export function LoginForm({
             aria-invalid={errors.password ? "true" : "false"}
             aria-describedby={errors.password ? "login-password-error" : undefined}
             className={`${errors.password ? inputErrorClasses : inputClasses} pr-10`}
+            suppressHydrationWarning
             {...register("password")}
           />
           <button

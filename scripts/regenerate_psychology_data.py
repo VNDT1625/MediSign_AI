@@ -54,8 +54,6 @@ MODEL_MAX_TOKENS: dict[str, int] = {
     "Llama-3.3-70B-Instruct":  32_000,
     "SaoLa4-medium":           32_000,
     "SaoLa4-small":            32_000,
-    "Qwen3-32B":               65_000,
-    "Qwen3.6-27B":            262_000,
     "gpt-oss-120b":           128_000,
 }
 # ~800 output tokens per dialogue (Vietnamese, 4-6 turns, ~60-80 words/assistant turn)

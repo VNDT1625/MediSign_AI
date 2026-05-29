@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Convert crawled drugs to JSON database format for Qwen2.5-VL."""
+"""Convert crawled drugs to JSON database format for medicine lookup."""
 import json
 import re
 

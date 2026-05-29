@@ -9,7 +9,7 @@ This document summarizes what is currently stored under `data/`, what each datas
 `data/` is a mixed data workspace containing:
 
 - Raw medical training corpora from MedQuAD, PubMedQA, Chinese medical dialogue data, Wikipedia-derived data, DAV drug registry crawls, HTML/PDF snapshots, and synthetic Vietnamese Q&A.
-- Clean training datasets for Qwen 72B and MedGemma 4B fine-tuning.
+- Clean training datasets for MedGemma 4B fine-tuning (Medical + Psychology dual-adapter).
 - A large local knowledge base for RAG: drugs, drug interactions, public guideline chunks, nutrition references, Vietnamese symptom phrases, and common diseases.
 - A local SQLite development database used by the FastAPI backend.
 - A vendored external package/repo, `brightohir`, for HL7/FHIR interoperability and Vietnamese medical code-system samples.
@@ -45,8 +45,7 @@ data/
 ├── processed/
 ├── scripts/
 ├── training_clean/
-│   ├── medgemma_4b/
-│   └── qwen_72b/
+│   └── medgemma_4b/
 └── training_raw/
     ├── MedQuAD/
     ├── Medical-Dialogue-Dataset-Chinese/
@@ -204,20 +203,6 @@ Cleaned data suitable for model training or drug database lookup.
 | `medical_dialogue_2010_2020.json` | 5,900 | Instruction-tuning records: `instruction`, `input`, `output`, `source`. |
 | `medical_dialogue_checkpoint.json` | 800 | Checkpoint subset. |
 | `medical_dialogue_full.json` | 800 | Full translated/converted dialogue subset currently present. |
-
-### `data/training_clean/qwen_72b/`
-
-Instruction-tuning data for Qwen 72B.
-
-| File | Records | Notes |
-|---|---:|---|
-| `train.json` | 16,888 | Current train split with `instruction`, `input`, `output`, `source`. |
-| `eval.json` | 1,876 | Current eval split. |
-| `2010_vi.json` | 550 | 2010 Vietnamese dialogue subset. |
-| `train.json.backup.json` | 12,513 | Older train backup. |
-| `eval.json.backup.json` | 1,390 | Older eval backup. |
-| `train_backup.json` | 12,303 | Older train backup. |
-| `eval_backup.json` | 1,366 | Older eval backup. |
 
 ### `data/training_clean/medgemma_4b/`
 
@@ -389,7 +374,6 @@ Data preparation scripts. They are not app runtime code; they are ETL/crawl/conv
 
 | Script | Purpose |
 |---|---|
-| `build_clean_data.py` | Normalize raw to clean training format, dedupe by input, remove bad rows, ensure disclaimer, split train/eval. |
 | `combine_medical.py` | Combine medical data; no top-level docstring. |
 | `convert_chinese.py` | Parse Chinese Medical Dialogue into Vietnamese Q&A sample. |
 | `convert_drug_db.py` | Convert crawled drugs into JSON database format. |
@@ -410,8 +394,6 @@ Data preparation scripts. They are not app runtime code; they are ETL/crawl/conv
 | `generate_synthetic_v2.py` | Generate more synthetic data toward larger target size. |
 | `generate_vn_drugs.py` | Generate VN market drug data. |
 | `med_part1.py`, `med_part2.py` | Small hardcoded Q&A generators/helpers; minimal docs. |
-| `merge_all_sources.py` | Merge all medical sources, dedupe, convert to train/eval. |
-| `merge_all_sources_v2.py` | Merge while preserving answer variants for the same question. |
 | `normalize_crawled.py` | Normalize extended crawled data. |
 | `normalize_wikipedia_data.py` | Normalize Wikipedia crawled drug data. |
 | `translate_medquad.py` | Translate MedQuAD answers in batches with resume/delay. |
@@ -419,7 +401,6 @@ Data preparation scripts. They are not app runtime code; they are ETL/crawl/conv
 | `translate_medquad_v2.py` | Debuggable per-entry MedQuAD translation. |
 | `translate_medquad_v3.py` | Batch MedQuAD translation, faster. |
 | `translate_pubmedqa.py` | Translate PubMedQA answers. |
-| `translate_train.py` | Minimal/obfuscated helper; no useful docstring. |
 
 ## Data Quality Notes
 
@@ -442,7 +423,6 @@ For RAG:
 For model fine-tuning:
 
 - Prefer `data/training_clean/medgemma_4b/train.jsonl` and `eval.jsonl` for MedGemma-style text formatting.
-- Prefer `data/training_clean/qwen_72b/train.json` and `eval.json` for Qwen-style instruction tuning.
 - Keep `source` fields during training data audits.
 
 For drug lookup:

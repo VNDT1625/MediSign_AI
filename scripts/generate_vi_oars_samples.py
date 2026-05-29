@@ -14,7 +14,7 @@ Chủ đề tiếng Việt: áp lực học đường, xung đột gia đình, t
 stress công việc, lo âu sức khoẻ, buồn bã / mất mát, mệt mỏi mãn tính.
 
 Usage:
-    # Dùng API key từ env (OPENAI_API_KEY hoặc DASHSCOPE_API_KEY):
+    # Dùng API key từ env (OPENAI_API_KEY hoặc BACKEND_AI_API_KEY):
     python scripts/generate_vi_oars_samples.py
 
     # Chỉ định model và số mẫu:
@@ -169,13 +169,13 @@ def _get_openai_client(base_url: str | None, api_key: str | None):
         print("[ERROR] openai package not found. Install: pip install openai>=1.0")
         sys.exit(1)
 
-    key = api_key or os.environ.get("OPENAI_API_KEY") or os.environ.get("DASHSCOPE_API_KEY")
+    key = api_key or os.environ.get("OPENAI_API_KEY") or os.environ.get("BACKEND_AI_API_KEY")
     url = base_url or os.environ.get("OPENAI_BASE_URL") or os.environ.get("BACKEND_AI_BASE_URL")
 
     if not key:
         print(
             "[ERROR] No API key found.\n"
-            "Set OPENAI_API_KEY or DASHSCOPE_API_KEY environment variable.\n"
+            "Set OPENAI_API_KEY or BACKEND_AI_API_KEY environment variable.\n"
             "Or pass --api-key YOUR_KEY"
         )
         sys.exit(1)
@@ -657,7 +657,7 @@ def parse_args() -> argparse.Namespace:
     )
     p.add_argument(
         "--api-key", default=None,
-        help="API key (overrides OPENAI_API_KEY / DASHSCOPE_API_KEY env var)",
+        help="API key (overrides OPENAI_API_KEY / BACKEND_AI_API_KEY env var)",
     )
     p.add_argument(
         "--resume", action="store_true",

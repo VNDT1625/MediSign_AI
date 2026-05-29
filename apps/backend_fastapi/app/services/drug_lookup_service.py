@@ -1,8 +1,17 @@
 # -*- coding: utf-8 -*-
 """
 Drug Recognition & Database Lookup Flow
-Dành cho Qwen2.5-VL-72B - Khi AI nhận diện được tên thuốc từ ảnh
-→ Tìm kiếm trong JSON database → Trả về kết quả
+=======================================
+Service tra cứu thuốc dựa trên tên (text). Phục vụ luồng:
+
+    User gửi ảnh thuốc → MedGemma vision (qua AI server cloud)
+                       → trích xuất tên thuốc
+                       → gọi `get_drug_info(drug_name)` ở đây
+                       → tra trong JSON database (DAV)
+                       → trả thông tin đầy đủ
+
+Service này KHÔNG đọc ảnh. Việc đọc ảnh do AI server (MedGemma + adapter)
+xử lý ở tầng trên, kết quả tên thuốc sau đó mới đẩy vào hàm này.
 """
 import json
 import re
@@ -233,22 +242,22 @@ if __name__ == "__main__":
             print(f"  {result['message']}")
 
 # ============================================================
-# INTEGRATION VỚI QWEN2.5-VL-72B
+# INTEGRATION VỚI MEDGEMMA VISION
 # ============================================================
 
 """
-Luồng hoạt động với Qwen2.5-VL-72B:
+Luồng hoạt động với MedGemma vision (qua AI server cloud):
 
 1. USER gửi ẢNH THUỐC
          │
          ▼
-2. Qwen2.5-VL-72B đọc ảnh → Extract tên thuốc
+2. AI server (MedGemma 4B + medical adapter) đọc ảnh → extract tên thuốc
          │
          ▼
-3. Gọi hàm get_drug_info(drug_name)
+3. Backend gọi hàm get_drug_info(drug_name)
          │
          ▼
-4. Tìm trong drug_database.json
+4. Tìm trong drug_database (DAV JSON)
          │
          ├── Tìm thấy → Trả thông tin thuốc
          │
@@ -257,9 +266,9 @@ Luồng hoạt động với Qwen2.5-VL-72B:
          ▼
 5. Trả lời USER với kết quả
 
-Ví dụ API call:
----------------
-Input: "Paracetamol 500mg" (từ ảnh)
+Ví dụ:
+------
+Input: "Paracetamol 500mg" (từ MedGemma vision)
 Output:
 {
   "status": "found",

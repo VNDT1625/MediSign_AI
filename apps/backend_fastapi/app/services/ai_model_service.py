@@ -132,18 +132,18 @@ class AIModelService:
     ) -> AIChatResponse:
         """Delegate to the diagnostic orchestrator for multi-turn flow.
 
-        This is a forward-reference: the actual ``diagnose_turn`` function lives in
-        ``app.services.diagnostic_orchestrator`` (Task 15). Until that module exists,
-        this method falls back to the single-shot path with the conversation_id
-        echoed back in the response.
+        ``diagnose_turn`` lives in ``app.services.diagnostic_orchestrator``. If the
+        orchestrator cannot be imported, this method falls back to the single-shot
+        path with the conversation_id echoed back in the response.
         """
         try:
             from app.services.diagnostic_orchestrator import diagnose_turn  # noqa: F401
 
             return await diagnose_turn(payload, conversation_id)
         except ImportError:
-            # Orchestrator not yet implemented — fall back to single-shot with
-            # conversation_id echoed so callers know multi-turn was requested.
+            # Defensive fallback only — the orchestrator module is normally
+            # importable. If it ever fails to import, degrade to single-shot
+            # with conversation_id echoed so callers know multi-turn was requested.
             logger.info(
                 "diagnostic_orchestrator not available, falling back to single-shot "
                 "for conversation_id=%s",

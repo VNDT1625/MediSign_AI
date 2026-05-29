@@ -1,95 +1,41 @@
 """AI-powered triage service.
 
-ARCHITECTURE OVERVIEW (CRITICAL - Read First!)
-==============================================
+ARCHITECTURE
+============
+Backend FastAPI là **thin client**, KHÔNG load model trực tiếp. Mọi cuộc gọi
+AI đi qua AI server cloud OpenAI-compatible:
 
-MediSign AI có 3 DEPLOYMENT MODES:
+    Backend (port 8000) ──httpx──> AI Server (cloud, /v1/chat/completions)
+                                    └── MedGemma 4B + medical adapter
 
-┌─────────────────────────────────────────────────────────────────────┐
-│                    MEDISIGN AI DEPLOYMENT MODES                     │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐│
-│  │    CLOUD        │    │     LOCAL        │    │    HYBRID       ││
-│  │   (Bảo mật)     │    │  (Security)      │    │  (Kết hợp)     ││
-│  ├─────────────────┤    ├─────────────────┤    ├─────────────────┤│
-│  │ Qwen 2.5 72B   │    │  Gemma 2B       │    │   Cloud +      ││
-│  │ + LoRA Y tế VN │    │  + 2 Adapters    │    │   Local        ││
-│  │ Self-hosted    │    │  On-device      │    │                 ││
-│  └─────────────────┘    └─────────────────┘    └─────────────────┘│
-│                                                                      │
-└─────────────────────────────────────────────────────────────────────┘
+Triage có 3 tầng:
+    TIER 1 — Rule-based (luôn chạy trước, fast path cho emergency).
+    TIER 2 — MedGemma medical adapter (chỉ gọi cho non-emergency, qua AI server).
+    TIER 3 — Rule-based fallback (khi AI server lỗi/không cấu hình).
 
-───────────────────────────────────────────────────────────────────────
-MODE 1: CLOUD (Đám mây - Ẩn danh hoàn toàn)
-───────────────────────────────────────────────────────────────────────
-  • Model CHÍNH: Qwen 2.5 72B + LoRA Adapter Y tế VN (tự train)
-  • Deploy: Self-hosted trên server riêng (A100 GPU)
+Cấu hình AI server qua biến môi trường:
+    BACKEND_AI_PROVIDER          rule_based | openai_compatible | medgemma_server
+    BACKEND_AI_BASE_URL          URL AI server (vd: https://ai.example.com/v1)
+    BACKEND_AI_MEDICAL_MODEL     model name khi gọi (vd: medisign-medgemma-medical)
+    BACKEND_AI_API_KEY           bearer token nếu AI server yêu cầu
 
-  ┌─────────────────────────────────────────────────────────────┐
-  │ FALLBACK STRATEGY (Tránh quá tải):                         │
-  ├─────────────────────────────────────────────────────────────┤
-  │ 1. Qwen 72B xử lý bình thường                             │
-  │ 2. 80-95% tải → Chuyển sang Qwen 7B (nhanh 10x)          │
-  │ 3. 95-100% tải → Gemini Flash API (trả phí nhưng không  │
-  │    sập)                                                    │
-  │ 4. 100% quá tải → Request Queue + Ưu tiên emergency       │
-  └─────────────────────────────────────────────────────────────┘
-
-  • Use case: User muốn AI mạnh nhất, chấp nhận gửi data lên cloud
-  • CẦN TRAIN: Qwen 2.5 72B + LoRA Medical Adapter
-
-───────────────────────────────────────────────────────────────────────
-MODE 2: LOCAL (Local - Bảo mật tối đa)
-───────────────────────────────────────────────────────────────────────
-  • Base Model: Gemma 2B (4-bit, ~1.5GB)
-  • Adapter #1: MediSign-Med (LoRA y tế, ~50MB) - CẦN TRAIN
-  • Adapter #2: MediSign-Personal (LoRA cá nhân, ~50-100MB) - CẦN TRAIN
-  • Total RAM: ~1.65GB
-  • Use case: User muốn 100% offline, data không rời máy
-  • CẦN TRAIN: 2 Adapters (Medical + Personal)
-
-───────────────────────────────────────────────────────────────────────
-MODE 3: HYBRID (Kết hợp)
-───────────────────────────────────────────────────────────────────────
-  • Cloud cho complex queries
-  • Local cho quick responses & offline fallback
-  • Adapter Personal đồng bộ encrypted lên cloud (backup)
-
-───────────────────────────────────────────────────────────────────────
-INTERNAL FALLBACK (trong mỗi mode):
-───────────────────────────────────────────────────────────────────────
-
-    REQUEST → RULE-BASED (fast path for emergencies)
-                  │
-                  ▼ If NOT emergency → AI MODEL
-                  │    (Qwen/Gemini/Gemma tùy mode)
-                  │
-                  ▼ If AI fails → RULE-BASED RESPONSE
-                       (always works, no external deps)
-
-───────────────────────────────────────────────────────────────────────
-WHAT NEEDS TRAINING:
-───────────────────────────────────────────────────────────────────────
-1. Qwen 2.5 72B + LoRA Medical Adapter (Cloud mode)
-2. Gemma 2B + LoRA Medical Adapter (Local mode)
-3. LoRA Personal Adapter (Local/Hybrid mode)
-
-See: packages/ai_training/
-
-ENVIRONMENT VARIABLES:
-======================
-- DASHSCOPE_API_KEY: API key from Alibaba Cloud DashScope (for Qwen)
-- AI_MODEL: Model name (default: "qwen-turbo")
-- LOCAL_MODE: Set to "true" for local-only mode (Gemma 2B)
-
-NOTE: AI is OPTIONAL - rule-based always works as fallback.
+Khi `ai_provider == "rule_based"` hoặc AI server không khả dụng, service vẫn
+chạy đầy đủ bằng rule-based fallback.
 """
-import os
-from typing import Optional
+from __future__ import annotations
 
+import json
+import logging
+from typing import Any
+
+import httpx
+
+from app.core.config import settings
 from app.schemas.triage import TriageRequest, TriageResponse
 from app.services.text_processing import find_phrase_starts, tokenize
+
+logger = logging.getLogger(__name__)
+
 
 # Emergency detection (rule-based for fast path)
 _EMERGENCY_PHRASES = (
@@ -130,193 +76,121 @@ def _classify_urgency_rule_based(symptom_text: str) -> str:
 
 
 class AITriageService:
-    """AI-powered triage service with Qwen integration.
+    """AI-powered triage service.
 
-    IMPORTANT: This service is designed with AI as BACKUP, not primary.
-
-    Priority Order:
-    1. Rule-based (fast) - Always runs first for emergencies
-    2. Qwen via DashScope (optional) - Only for nuanced non-emergency cases
-    3. Rule-based fallback (always works)
-
-    Usage:
-        service = AITriageService()
-        result = await service.triage_with_ai(payload)
-
-    Note: Set DASHSCOPE_API_KEY env var to enable Qwen.
-    Without API key, only rule-based triage is used.
+    AI is OPTIONAL — service falls back to rule-based when AI server is not
+    configured or returns errors. Emergency cases bypass AI entirely.
     """
 
-    def __init__(self):
-        # AI Provider Configuration (Qwen PRIMARY)
-        # ======================================
-        # AI is OPTIONAL - service works without it via rule-based fallback
-        #
-        # Environment Variables:
-        # - DASHSCOPE_API_KEY: API key from Alibaba Cloud DashScope (REQUIRED for Qwen)
-        # - AI_MODEL: Model name (default: "qwen-turbo")
-        #
-        # If DASHSCOPE_API_KEY is NOT set:
-        #   → Only rule-based triage is used (Tier 1 + Tier 3)
-        #   → Service still works fully
-        #
-        # If DASHSCOPE_API_KEY IS set:
-        #   → Qwen is used for non-emergency cases (Tier 2)
-        #   → Provides better nuance for complex symptoms
-        self.api_key = os.getenv("DASHSCOPE_API_KEY", "")
-        self.model = os.getenv("AI_MODEL", "qwen-turbo")
+    def __init__(self) -> None:
+        # Pull config at instance time so tests can override `settings`.
+        self.provider = settings.ai_provider
+        self.base_url = settings.ai_base_url.rstrip("/")
+        self.api_key = settings.ai_api_key
+        self.model = settings.ai_medical_model
+        self.timeout_seconds = settings.ai_request_timeout_seconds
+
+    @property
+    def _ai_enabled(self) -> bool:
+        return self.provider in {"openai_compatible", "medgemma_server"}
 
     async def triage_with_ai(self, payload: TriageRequest) -> TriageResponse:
+        """Perform triage with multi-tier fallback.
+
+        Tier 1 (Rule-based) catches obvious emergencies immediately. Tier 2
+        (AI server) provides nuanced analysis for non-emergency cases. Tier 3
+        is a deterministic rule-based response when AI is unavailable.
         """
-        Perform AI-powered triage with multi-tier fallback.
-
-        TIER 1 (Primary): Rule-based classification
-            → Returns emergency immediately if detected
-
-        TIER 2 (Optional): AI analysis via Gemini/Qwen
-            → Only called if: has API key AND NOT emergency
-            → Provides nuanced symptom analysis
-
-        TIER 3 (Fallback): Rule-based response
-            → Returns deterministic response if AI unavailable
-
-        Args:
-            payload: Triage request with symptom text
-
-        Returns:
-            TriageResponse with urgency level and recommendations
-        """
-        # Fast path: rule-based for obvious emergencies
         rule_urgency = _classify_urgency_rule_based(payload.symptom_text)
         if rule_urgency == "emergency":
             return self._build_emergency_response(payload)
 
-        # Use AI for nuanced analysis (Qwen via DashScope)
-        if self.api_key:
+        if self._ai_enabled:
             try:
                 return await self._call_ai_triage(payload)
-            except Exception as e:
-                # Fallback to rule-based on AI error
-                pass
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("AI triage failed, falling back to rule-based: %s", exc)
 
-        # Default: rule-based response
         return self._build_rule_based_response(payload, rule_urgency)
 
     async def _call_ai_triage(self, payload: TriageRequest) -> TriageResponse:
-        """Call Qwen API for triage via DashScope.
+        """Call MedGemma medical adapter via AI server (OpenAI-compatible).
 
-        NOTE: This method is only called when:
-        - DASHSCOPE_API_KEY is configured
-        - Case is NOT an obvious emergency (already handled by Tier 1)
-
-        This design prevents:
-        - AI API quota exhaustion from emergency calls
-        - Latency in critical situations
-        - Unnecessary costs for obvious cases
+        Only invoked when:
+        - ai_provider is openai_compatible/medgemma_server
+        - Case is NOT an obvious emergency (Tier 1 already handled).
         """
         prompt = self._build_triage_prompt(payload)
-        return await self._call_qwen(prompt, payload)
+        body: dict[str, Any] = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": _SYSTEM_PROMPT_VI},
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": 0.2,
+            "max_tokens": 1024,
+        }
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+
+        async with httpx.AsyncClient(timeout=self.timeout_seconds) as client:
+            response = await client.post(
+                f"{self.base_url}/chat/completions",
+                json=body,
+                headers=headers,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        content: str = data["choices"][0]["message"]["content"]
+        return self._parse_ai_response(content)
 
     def _build_triage_prompt(self, payload: TriageRequest) -> str:
-        """Build the triage prompt for AI."""
         age = getattr(payload, "age", None)
         gender = getattr(payload, "gender", None)
         duration = getattr(payload, "duration", None)
 
-        age_info = f", tuoi: {age}" if age else ""
-        gender_info = f", gioi tinh: {gender}" if gender else ""
+        age_info = f", tuổi: {age}" if age else ""
+        gender_info = f", giới tính: {gender}" if gender else ""
 
-        return f"""Ban la bac si chuyen nghiep. Phan tich cac trieu chung sau va dua ra khuyen cao y te.
-
-Trieu chung: {payload.symptom_text}
-Thoi gian: {duration or "khong ro"}{age_info}{gender_info}
-
-Chi tra ve JSON voi cac truong:
-- urgency_level: "emergency" | "urgent" | "non_emergency"
-- summary: tom tat 2-3 cau ve tinh trang
-- recommendations: danh sach 2-4 khuyen cao cu the
-
-Phan tich:"""
-
-    async def _call_gemini(self, prompt: str, payload: TriageRequest) -> TriageResponse:
-        """Call Gemini API for triage analysis."""
-        import google.generativeai as genai
-        import json
-
-        genai.configure(api_key=self.api_key)
-
-        model = genai.GenerativeModel(self.model)
-
-        # Generate content with JSON response format
-        generation_config = {
-            "temperature": 0.2,
-            "max_output_tokens": 1024,
-            "response_mime_type": "application/json",
-        }
-
-        response = model.generate_content(
-            prompt,
-            generation_config=generation_config,
+        return (
+            "Phân tích các triệu chứng sau và trả về JSON thuần (không markdown):\n"
+            f"Triệu chứng: {payload.symptom_text}\n"
+            f"Thời gian: {duration or 'không rõ'}{age_info}{gender_info}\n\n"
+            "JSON gồm các trường:\n"
+            '- "urgency_level": "emergency" | "urgent" | "non_emergency"\n'
+            '- "summary": tóm tắt 2-3 câu về tình trạng\n'
+            '- "recommendations": mảng 2-4 khuyến cáo cụ thể (tiếng Việt)\n'
         )
 
-        # Parse the JSON response
+    def _parse_ai_response(self, content: str) -> TriageResponse:
+        """Parse JSON output from AI server. Falls back to text heuristics."""
+        text = content.strip()
+        # Strip markdown fence if model wraps JSON in ```json ... ```
+        if text.startswith("```"):
+            stripped = text.strip("`")
+            if stripped.lower().startswith("json"):
+                stripped = stripped[4:]
+            text = stripped.strip()
+
         try:
-            result = json.loads(response.text)
+            result = json.loads(text)
             return TriageResponse(
                 urgency_level=result.get("urgency_level", "non_emergency"),
                 summary=result.get("summary", ""),
-                recommendations=result.get("recommendations", []),
+                recommendations=result.get("recommendations") or [],
             )
-        except json.JSONDecodeError:
-            # If response is not valid JSON, use rule-based
-            raise Exception("Invalid JSON response from Gemini")
+        except (json.JSONDecodeError, TypeError, ValueError):
+            logger.info("AI response was not valid JSON, parsing text heuristically.")
+            return self._parse_text_response(content)
 
-    async def _call_qwen(self, prompt: str, payload: TriageRequest) -> TriageResponse:
-        """Call Qwen API via DashScope.
-
-        Uses Alibaba Cloud DashScope API for Qwen models.
-        See: https://dashscope.console.aliyun.com/
-        """
-        import dashscope
-        import json
-
-        dashscope.api_key = self.api_key
-
-        response = dashscope.Generation.call(
-            model=self.model,
-            prompt=prompt,
-            result_format='message',
-            temperature=0.2,
-            max_tokens=1024,
-        )
-
-        # Parse the response
-        if response.status_code == 200:
-            content = response.output.choices[0].message.content
-            # Try to extract JSON from response
-            try:
-                # Qwen might return raw text, try to parse JSON
-                result = json.loads(content)
-                return TriageResponse(
-                    urgency_level=result.get("urgency_level", "non_emergency"),
-                    summary=result.get("summary", ""),
-                    recommendations=result.get("recommendations", []),
-                )
-            except json.JSONDecodeError:
-                # If not JSON, extract structured info from text
-                return self._parse_qwen_text_response(content)
-        else:
-            raise Exception(f"Qwen API error: {response.code} - {response.message}")
-
-    def _parse_qwen_text_response(self, text: str) -> TriageResponse:
-        """Parse Qwen text response into structured TriageResponse."""
-        # Simple parsing - in production, use better prompt engineering
+    def _parse_text_response(self, text: str) -> TriageResponse:
+        """Fallback parser when AI returns free-form Vietnamese text."""
         text_lower = text.lower()
-
-        # Determine urgency
-        if any(word in text_lower for word in ['khẩn', 'cấp', 'nguy hiểm', '115']):
+        if any(word in text_lower for word in ("khẩn cấp", "cấp cứu", "nguy hiểm", "115")):
             urgency = "emergency"
-        elif any(word in text_lower for word in ['nên đi khám', 'trong 24', 'trong 48']):
+        elif any(word in text_lower for word in ("nên đi khám", "trong 24", "trong 48")):
             urgency = "urgent"
         else:
             urgency = "non_emergency"
@@ -325,83 +199,81 @@ Phan tich:"""
             urgency_level=urgency,
             summary=text[:200] if len(text) > 200 else text,
             recommendations=[
-                "Tham khảo ý kiến bác sĩ",
-                "Theo dõi triệu chứng",
-                "Liên hệ cơ sở y tế nếu tình trạng nặng lên",
+                "Tham khảo ý kiến bác sĩ.",
+                "Theo dõi triệu chứng.",
+                "Liên hệ cơ sở y tế nếu tình trạng nặng lên.",
             ],
         )
 
     def _build_emergency_response(self, payload: TriageRequest) -> TriageResponse:
-        """Build emergency response.
-
-        TIER 1 RESPONSE: This is returned IMMEDIATELY when rule-based
-        detects emergency keywords (e.g., "khó thở", "đau ngực", "ngất").
-
-        This bypasses AI entirely to ensure:
-        - Fastest possible response for critical cases
-        - No AI API quota consumed for obvious emergencies
-        - Reliable response even when AI service is down
-        """
+        """Tier 1 response — bypasses AI for fastest possible reply."""
         return TriageResponse(
             urgency_level="emergency",
-            summary="Trieu chung can cap cuu ngay. Lien he 115 hoac den benh vien gan nhat.",
+            summary="Triệu chứng cần cấp cứu ngay. Liên hệ 115 hoặc đến bệnh viện gần nhất.",
             recommendations=[
-                "Goi cap cuu 115 hoac den benh vien ngay lap tuc.",
-                "Neu co dau nguc hoac kho tho, goi 115 ngay.",
-                "Khong tu y uong thuoc chua ro.",
-                "Neu co nguoi than, thong bao ngay.",
+                "Gọi cấp cứu 115 hoặc đến bệnh viện ngay lập tức.",
+                "Nếu có đau ngực hoặc khó thở, gọi 115 ngay.",
+                "Không tự ý uống thuốc chưa rõ.",
+                "Nếu có người thân, thông báo ngay.",
             ],
         )
 
     def _build_rule_based_response(
         self, payload: TriageRequest, urgency: str
     ) -> TriageResponse:
-        """Build rule-based response."""
+        """Tier 3 fallback — deterministic response when AI unavailable."""
         if urgency == "urgent":
             recommendations = [
-                "Den phong kham hoac BV trong 24-48 gio.",
-                "Theo doi trieu chung, neu nang len goi 115.",
-                "Uong du nuoc, nghi ngoi.",
+                "Đến phòng khám hoặc bệnh viện trong 24-48 giờ.",
+                "Theo dõi triệu chứng, nếu nặng lên gọi 115.",
+                "Uống đủ nước, nghỉ ngơi.",
             ]
         else:
             recommendations = [
-                "Theo doi trieu chung trong 24-48 gio.",
-                "Uong du nuoc va nghi ngoi.",
-                "Lien he co so y te neu trieu chung tang len.",
+                "Theo dõi triệu chứng trong 24-48 giờ.",
+                "Uống đủ nước và nghỉ ngơi.",
+                "Liên hệ cơ sở y tế nếu triệu chứng tăng lên.",
             ]
 
         return TriageResponse(
             urgency_level=urgency,
-            summary="Thong tin mang tinh tham khao, khong thay the chan doan bac si.",
+            summary="Thông tin mang tính tham khảo, không thay thế chẩn đoán bác sĩ.",
             recommendations=recommendations,
         )
+
+
+_SYSTEM_PROMPT_VI = (
+    "Bạn là MediSign AI, trợ lý y tế tiếng Việt. "
+    "Phân loại mức độ khẩn cấp và đưa khuyến cáo dựa trên triệu chứng. "
+    "Luôn trả lời bằng tiếng Việt, không dịch sang ngôn ngữ khác. "
+    "Chỉ đưa gợi ý sơ bộ, không chẩn đoán chắc chắn, "
+    "luôn khuyên gặp bác sĩ khi có dấu hiệu nặng."
+)
 
 
 # Default instance
 ai_triage_service = AITriageService()
 
 
-# Keep backwards compatibility
+# Backward-compatible legacy function — uses rule-based only.
 def build_triage_result(payload: TriageRequest) -> TriageResponse:
-    """Legacy function - uses rule-based triage."""
-    import asyncio
-
+    """Legacy function — uses rule-based triage (no AI call)."""
     urgency_level = _classify_urgency_rule_based(payload.symptom_text)
 
     recommendations = [
-        "Theo doi trieu chung trong 24 gio.",
-        "Uong du nuoc va nghi ngoi.",
-        "Lien he co so y te neu trieu chung tang len.",
+        "Theo dõi triệu chứng trong 24 giờ.",
+        "Uống đủ nước và nghỉ ngơi.",
+        "Liên hệ cơ sở y tế nếu triệu chứng tăng lên.",
     ]
 
     if urgency_level == "emergency":
         recommendations = [
-            "Goi cap cuu 115 hoac den benh vien gan nhat ngay.",
-            "Khong tu y dung thuoc chua ro nguon goc.",
+            "Gọi cấp cứu 115 hoặc đến bệnh viện gần nhất ngay.",
+            "Không tự ý dùng thuốc chưa rõ nguồn gốc.",
         ]
 
     return TriageResponse(
         urgency_level=urgency_level,
-        summary="Thong tin mang tinh tham khao, khong thay the chan doan bac si.",
+        summary="Thông tin mang tính tham khảo, không thay thế chẩn đoán bác sĩ.",
         recommendations=recommendations,
     )

@@ -129,7 +129,7 @@ export function ForgotForm({
   const handler = handleSubmit(onSubmit);
 
   return (
-    <form noValidate onSubmit={handler} className="space-y-4">
+    <form noValidate onSubmit={handler} className="space-y-4" suppressHydrationWarning>
       {/* Phase 2 notice banner */}
       <div
         className="flex items-start gap-2.5 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3"
@@ -165,6 +165,7 @@ export function ForgotForm({
             aria-invalid={errors.email ? "true" : "false"}
             aria-describedby={errors.email ? "forgot-email-error" : undefined}
             className={errors.email ? inputErr : input}
+            suppressHydrationWarning
             {...register("email")}
           />
         </div>

@@ -41,25 +41,24 @@ export default function RootLayout({
     <html lang="vi" className={inter.variable} suppressHydrationWarning>
       <head>
         {/*
-          Preload video Login với priority cao — browser bắt đầu fetch ngay
-          khi tải trang chủ, nên lần đầu user click "Tạo tài khoản" video
-          đã có sẵn trong cache.
-          Dùng `as="fetch"` thay vì `as="video"` vì Chrome chưa hỗ trợ
-          `as="video"` cho `<link rel="preload">` — sẽ raise warning
-          "unsupported as value". `crossOrigin` cần khớp với request thật.
+          Preconnect tới R2 origin để rút ngắn TLS handshake khi `<video>`
+          thật sự load (trang Login, Hero). KHÔNG dùng `<link rel="preload">`
+          cho video MP4 ở đây vì:
+            1. R2 chưa cấu hình CORS → request preload với `crossOrigin`
+               sẽ bị block (`net::ERR_FAILED`).
+            2. `<video>` element load qua range requests, không reuse được
+               response của một preload đơn giản → browser raise warning
+               "preloaded but not used" và tốn băng thông gấp đôi.
+          Để tăng tốc lần đầu, hãy đặt `preload="auto"` trên element <video>
+          tương ứng và bật CORS ở bucket R2 (Access-Control-Allow-Origin).
         */}
-        <link
-          rel="preload"
-          as="fetch"
-          type="video/mp4"
-          href="https://pub-9e85fcdc5e564734ac6f665ff3f54bf0.r2.dev/kling_20260516_%E4%BD%9C%E5%93%81_The_camera_4212_0%20(1).mp4"
-          crossOrigin="anonymous"
-        />
-        {/* Hint cho browser kết nối sớm tới R2 origin */}
         <link
           rel="preconnect"
           href="https://pub-9e85fcdc5e564734ac6f665ff3f54bf0.r2.dev"
-          crossOrigin="anonymous"
+        />
+        <link
+          rel="dns-prefetch"
+          href="https://pub-9e85fcdc5e564734ac6f665ff3f54bf0.r2.dev"
         />
       </head>
       <body suppressHydrationWarning>

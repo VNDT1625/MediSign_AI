@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 Drug Recognition API
-FastAPI endpoint cho Qwen2.5-VL-72B
+====================
+FastAPI endpoint phục vụ luồng tra cứu thuốc. Backend là thin client —
+việc đọc ảnh thuốc do AI server cloud (MedGemma 4B + medical adapter)
+thực hiện ở tầng trên, kết quả tên thuốc đẩy về endpoint này để lookup.
 """
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -70,7 +73,7 @@ async def search_drug(request: DrugSearchRequest):
     Tìm kiếm thuốc theo tên.
 
     Args:
-        drug_name: Tên thuốc được nhận diện từ ảnh (Qwen2.5-VL)
+        drug_name: Tên thuốc được nhận diện từ ảnh (qua MedGemma vision ở AI server)
 
     Returns:
         DrugSearchResponse: Thông tin thuốc hoặc gợi ý
@@ -140,16 +143,17 @@ async def get_random_drugs(count: int = 5):
 # ============================================================
 
 """
-LUỒNG TÍCH HỢP VỚI QWEN2.5-VL-72B:
+LUỒNG TÍCH HỢP VỚI MEDGEMMA VISION (qua AI server cloud):
 
-1. User gửi ảnh thuốc lên API
-2. Qwen2.5-VL-72B extract tên thuốc từ ảnh
-3. Gọi POST /api/v1/drug/search với drug_name
-4. Nhận kết quả và trả lời user
+1. User gửi ảnh thuốc lên backend
+2. Backend forward ảnh tới AI server cloud
+3. MedGemma 4B + medical adapter ở AI server đọc ảnh → extract tên thuốc
+4. Backend nhận tên thuốc → gọi POST /api/drug/search
+5. Trả kết quả về user
 
 Ví dụ API Call:
 --------------
-POST /api/v1/drug/search
+POST /api/drug/search
 {
     "drug_name": "Paracetamol 500mg"
 }
@@ -166,7 +170,7 @@ Response:
 
 Ví dụ curl:
 -----------
-curl -X POST "http://localhost:8000/api/v1/drug/search" \
+curl -X POST "http://localhost:8000/api/drug/search" \
      -H "Content-Type: application/json" \
      -d '{"drug_name": "Paracetamol"}'
 """

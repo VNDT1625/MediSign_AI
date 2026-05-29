@@ -623,14 +623,13 @@ def _load_personal_context(
 
 
 def _extract_user_id(payload: AIChatRequest) -> str:
-    """Extract user_id from the request context.
+    """Extract a fallback user_id from the request payload.
 
-    In the actual API flow, user_id comes from the authenticated user
-    (get_current_user dependency). For the orchestrator, we use a
-    placeholder that will be overridden by the route handler.
+    The API route (``/api/v1/ai/chat``) passes the authenticated user's id
+    directly to ``diagnose_turn``, so this helper is only a defensive fallback
+    for callers that invoke the orchestrator without an explicit ``user_id``
+    (e.g. tests). It returns ``"anonymous"`` when no id is present.
     """
-    # The route handler should pass user_id; for now use a default
-    # This will be properly wired when the route is updated (Task 17)
     return getattr(payload, "_user_id", "anonymous")
 
 

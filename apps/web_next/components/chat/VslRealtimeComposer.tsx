@@ -58,6 +58,24 @@ export function VslRealtimeComposer({ elderly = false, isSending, onSend }: Prop
       streamRef.current.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  }
+
+  /**
+   * Đợi `<video>` element được mount vào DOM. Cần thiết vì khi chuyển từ
+   * phase "closed" → "initializing", React chưa kịp render <video> nên
+   * `videoRef.current` còn `null`. Ta poll ref tối đa ~2s.
+   */
+  async function waitForVideoElement(timeoutMs = 2000): Promise<HTMLVideoElement> {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      if (videoRef.current) return videoRef.current;
+      // Yield một frame để React commit
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+    }
+    throw new Error("Không thể khởi tạo khung hình camera. Vui lòng thử lại.");
   }
 
   async function openCamera() {
@@ -65,16 +83,21 @@ export function VslRealtimeComposer({ elderly = false, isSending, onSend }: Prop
     setPhase("initializing");
 
     try {
-      // Request camera
+      // Request camera — 1280×720 cho FOV rộng hơn (tránh cảm giác "zoom-in"
+      // chật chội) + chất lượng landmark tốt hơn cho khuôn mặt nhỏ.
+      // Browser sẽ chọn resolution gần nhất camera hỗ trợ.
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+        video: {
+          facingMode: "user",
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
         audio: false,
       });
       streamRef.current = stream;
 
-      // Bind to video element
-      const videoEl = videoRef.current;
-      if (!videoEl) throw new Error("Video element not found");
+      // Bind to video element — đợi DOM mount xong (xem `waitForVideoElement`)
+      const videoEl = await waitForVideoElement();
       videoEl.srcObject = stream;
       await videoEl.play();
 
@@ -152,18 +175,6 @@ export function VslRealtimeComposer({ elderly = false, isSending, onSend }: Prop
     );
   }
 
-  // ─── Initializing state ───
-  if (phase === "initializing") {
-    return (
-      <div className="flex flex-col items-center gap-3 p-4">
-        <div className="flex items-center gap-2">
-          <span className="animate-spin h-4 w-4 border-2 border-teal-400 border-t-transparent rounded-full" />
-          <span className={`text-ink-600 ${fontSize}`}>Đang khởi tạo camera & model...</span>
-        </div>
-      </div>
-    );
-  }
-
   // ─── Error state ───
   if (phase === "error") {
     return (
@@ -182,11 +193,14 @@ export function VslRealtimeComposer({ elderly = false, isSending, onSend }: Prop
     );
   }
 
-  // ─── Active state ───
+  // ─── Initializing & Active states ───
+  // <video> phải được mount ngay khi bước vào "initializing" để
+  // `videoRef.current` available trước khi `openCamera()` truy cập.
+  const isInitializing = phase === "initializing";
   return (
     <div className="flex flex-col gap-3 p-3">
       {/* Camera + Landmark overlay */}
-      <div className="relative aspect-video max-h-[280px] overflow-hidden rounded-xl bg-black">
+      <div className="relative aspect-video max-h-[360px] overflow-hidden rounded-xl bg-black">
         <video
           ref={videoRef}
           muted
@@ -195,15 +209,29 @@ export function VslRealtimeComposer({ elderly = false, isSending, onSend }: Prop
           style={{ transform: "scaleX(-1)" }}
           aria-label="Camera preview cho nhận diện ký hiệu"
         />
+        {/*
+          Canvas DÙNG `object-cover` GIỐNG video — cả hai layer crop đồng
+          bộ theo cùng aspect ratio. Canvas internal resolution được service
+          set = video native (1280×720) nên landmark normalized [0..1]
+          mapping chính xác sang pixel video → khi CSS crop, chấm vẫn dính
+          đúng vị trí pixel video bên dưới.
+        */}
         <canvas
           ref={canvasRef}
-          className="absolute inset-0 h-full w-full pointer-events-none"
+          className="absolute inset-0 h-full w-full object-cover pointer-events-none"
           style={{ transform: "scaleX(-1)" }}
           aria-hidden="true"
         />
 
+        {isInitializing && (
+          <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/60">
+            <span className="animate-spin h-4 w-4 border-2 border-teal-300 border-t-transparent rounded-full" />
+            <span className={`text-white ${fontSize}`}>Đang khởi tạo camera & model...</span>
+          </div>
+        )}
+
         {/* Current recognition badge */}
-        {currentSign && (
+        {!isInitializing && currentSign && (
           <div className="absolute top-3 left-3 rounded-xl bg-teal-500/90 px-3 py-1.5 shadow-lg">
             <span className="font-bold text-white text-[14px]">
               ✋ {currentSign}
@@ -212,14 +240,16 @@ export function VslRealtimeComposer({ elderly = false, isSending, onSend }: Prop
         )}
 
         {/* Status indicator */}
-        <div className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-pill bg-black/70 px-2.5 py-1">
-          <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-[11px] font-bold text-green-200">Đang nhận diện</span>
-        </div>
+        {!isInitializing && (
+          <div className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-pill bg-black/70 px-2.5 py-1">
+            <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
+            <span className="text-[11px] font-bold text-green-200">Đang nhận diện</span>
+          </div>
+        )}
       </div>
 
       {/* Recognized signs history */}
-      {recognizedSigns.length > 0 && (
+      {!isInitializing && recognizedSigns.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {recognizedSigns.slice(-10).map((sign, idx) => (
             <span
@@ -239,10 +269,11 @@ export function VslRealtimeComposer({ elderly = false, isSending, onSend }: Prop
           value={composedText}
           onChange={handleEditText}
           placeholder="Ký hiệu sẽ xuất hiện ở đây..."
-          className={`flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 ${fontSize} text-ink-900 placeholder:text-ink-400 focus:border-teal-500 focus:outline-none`}
+          disabled={isInitializing}
+          className={`flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 ${fontSize} text-ink-900 placeholder:text-ink-400 focus:border-teal-500 focus:outline-none disabled:opacity-50`}
           aria-label="Văn bản nhận diện từ ký hiệu"
         />
-        {composedText && (
+        {composedText && !isInitializing && (
           <button
             type="button"
             onClick={handleClear}
@@ -259,7 +290,7 @@ export function VslRealtimeComposer({ elderly = false, isSending, onSend }: Prop
         <button
           type="button"
           onClick={handleSend}
-          disabled={!composedText.trim() || isSending}
+          disabled={isInitializing || !composedText.trim() || isSending}
           className={`flex-1 rounded-xl bg-teal-600 font-bold text-white shadow-md hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${btnSize}`}
           aria-label="Gửi tin nhắn"
         >

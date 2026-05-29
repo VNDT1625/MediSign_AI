@@ -71,7 +71,7 @@ FastAPI **không load model trực tiếp**. Model chạy trong GPU process riê
 
 | Mode | Model chính | Use case |
 |------|-------------|----------|
-| **Cloud** | Qwen 2.5 72B + LoRA Medical (self-hosted A100) | AI mạnh nhất, chấp nhận gửi data lên cloud |
+| **Cloud** | MedGemma 1.5 4B + Medical/Psychology adapter (AI server cloud — H100/A100) | AI mạnh nhất, ổn định, qua API OpenAI-compatible |
 | **Local** | Gemma 2B + 2 LoRA Adapters (~1.65 GB RAM) | 100% offline, data không rời máy |
 | **Hybrid** | Cloud cho complex queries + Local fallback | Cân bằng hiệu năng và bảo mật |
 
@@ -174,16 +174,16 @@ def _model_for_adapter(self, adapter: str) -> str:
     return settings.ai_model                  # google/medgemma-1.5-4b-it (default)
 ```
 
-### Triage AI (Qwen fallback)
+### Triage AI (MedGemma — tùy chọn)
 
-`AITriageService` dùng **Qwen via Alibaba DashScope** cho phân tích triệu chứng phức tạp:
+`AITriageService` gọi MedGemma medical adapter qua AI server (OpenAI-compatible) cho phân tích triệu chứng phức tạp:
 
 ```
 REQUEST → Rule-based (fast path, luôn chạy trước)
               │
-              ▼ Nếu KHÔNG phải emergency → Qwen API (nếu có DASHSCOPE_API_KEY)
+              ▼ Nếu KHÔNG phải emergency → MedGemma medical adapter (qua AI server cloud)
               │
-              ▼ Nếu Qwen lỗi / không có key → Rule-based fallback
+              ▼ Nếu AI server lỗi / không cấu hình → Rule-based fallback
 ```
 
 Emergency keywords (rule-based, không qua AI): `khó thở`, `đau ngực`, `ngất`, `chết nguồn`.
@@ -267,7 +267,6 @@ Override path: `BACKEND_DRUG_DB_PATH` env var.
 | DB Driver | psycopg3 (binary) |
 | Auth | PyJWT (HS256), PBKDF2-SHA256 (120k iterations) |
 | HTTP Client | httpx ≥0.27 (async) |
-| AI SDK | dashscope ≥1.14 (Alibaba Qwen) |
 | Validation | Pydantic Settings v2 |
 | Linting | Ruff + Black |
 
@@ -495,11 +494,9 @@ BACKEND_RAG_MAX_CONTEXT_CHARS=6000
 BACKEND_RAG_MIN_SCORE=0.15
 ```
 
-### Triage AI (Qwen — tùy chọn)
-```env
-DASHSCOPE_API_KEY=
-AI_MODEL=qwen-turbo
-```
+### Triage AI (qua AI server, đã cấu hình ở `BACKEND_AI_*` phía trên)
+
+Nếu `BACKEND_AI_PROVIDER=openai_compatible` thì triage tự động dùng MedGemma medical adapter qua AI server. Khi đặt về `rule_based` thì triage chạy hoàn toàn rule-based (vẫn hoạt động đầy đủ).
 
 ### Email (để trống = console mode)
 ```env

@@ -1,15 +1,17 @@
 {
   "format": "medisign-vsl-weights-v1",
   "dtype": "float32",
+  "feature_dim": 495,
+  "num_classes": 141,
   "weights": [
     {
       "name": "sequential/bidirectional/forward_lstm/lstm_cell/kernel",
       "shape": [
-        126,
+        495,
         256
       ],
       "offset": 0,
-      "length": 129024
+      "length": 506880
     },
     {
       "name": "sequential/bidirectional/forward_lstm/lstm_cell/recurrent_kernel",
@@ -17,7 +19,7 @@
         64,
         256
       ],
-      "offset": 129024,
+      "offset": 506880,
       "length": 65536
     },
     {
@@ -25,17 +27,17 @@
       "shape": [
         256
       ],
-      "offset": 194560,
+      "offset": 572416,
       "length": 1024
     },
     {
       "name": "sequential/bidirectional/backward_lstm/lstm_cell/kernel",
       "shape": [
-        126,
+        495,
         256
       ],
-      "offset": 195584,
-      "length": 129024
+      "offset": 573440,
+      "length": 506880
     },
     {
       "name": "sequential/bidirectional/backward_lstm/lstm_cell/recurrent_kernel",
@@ -43,7 +45,7 @@
         64,
         256
       ],
-      "offset": 324608,
+      "offset": 1080320,
       "length": 65536
     },
     {
@@ -51,7 +53,7 @@
       "shape": [
         256
       ],
-      "offset": 390144,
+      "offset": 1145856,
       "length": 1024
     },
     {
@@ -59,7 +61,7 @@
       "shape": [
         128
       ],
-      "offset": 391168,
+      "offset": 1146880,
       "length": 512
     },
     {
@@ -67,7 +69,7 @@
       "shape": [
         128
       ],
-      "offset": 391680,
+      "offset": 1147392,
       "length": 512
     },
     {
@@ -76,7 +78,7 @@
         128,
         128
       ],
-      "offset": 392192,
+      "offset": 1147904,
       "length": 65536
     },
     {
@@ -85,7 +87,7 @@
         32,
         128
       ],
-      "offset": 457728,
+      "offset": 1213440,
       "length": 16384
     },
     {
@@ -93,7 +95,7 @@
       "shape": [
         128
       ],
-      "offset": 474112,
+      "offset": 1229824,
       "length": 512
     },
     {
@@ -102,7 +104,7 @@
         128,
         128
       ],
-      "offset": 474624,
+      "offset": 1230336,
       "length": 65536
     },
     {
@@ -111,7 +113,7 @@
         32,
         128
       ],
-      "offset": 540160,
+      "offset": 1295872,
       "length": 16384
     },
     {
@@ -119,7 +121,7 @@
       "shape": [
         128
       ],
-      "offset": 556544,
+      "offset": 1312256,
       "length": 512
     },
     {
@@ -127,7 +129,7 @@
       "shape": [
         64
       ],
-      "offset": 557056,
+      "offset": 1312768,
       "length": 256
     },
     {
@@ -135,7 +137,7 @@
       "shape": [
         64
       ],
-      "offset": 557312,
+      "offset": 1313024,
       "length": 256
     },
     {
@@ -144,7 +146,7 @@
         64,
         32
       ],
-      "offset": 557568,
+      "offset": 1313280,
       "length": 8192
     },
     {
@@ -152,32 +154,32 @@
       "shape": [
         32
       ],
-      "offset": 565760,
+      "offset": 1321472,
       "length": 128
     },
     {
       "name": "sequential/output_gesture/kernel",
       "shape": [
         32,
-        10
+        141
       ],
-      "offset": 565888,
-      "length": 1280
+      "offset": 1321600,
+      "length": 18048
     },
     {
       "name": "sequential/output_gesture/bias",
       "shape": [
-        10
+        141
       ],
-      "offset": 567168,
-      "length": 40
+      "offset": 1339648,
+      "length": 564
     },
     {
       "name": "sequential/batch_normalization/moving_mean",
       "shape": [
         128
       ],
-      "offset": 567208,
+      "offset": 1340212,
       "length": 512
     },
     {
@@ -185,7 +187,7 @@
       "shape": [
         128
       ],
-      "offset": 567720,
+      "offset": 1340724,
       "length": 512
     },
     {
@@ -193,7 +195,7 @@
       "shape": [
         64
       ],
-      "offset": 568232,
+      "offset": 1341236,
       "length": 256
     },
     {
@@ -201,7 +203,7 @@
       "shape": [
         64
       ],
-      "offset": 568488,
+      "offset": 1341492,
       "length": 256
     }
   ]
