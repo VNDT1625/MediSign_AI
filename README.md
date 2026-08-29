@@ -1,6 +1,19 @@
 # MediSign AI
 
-Ứng dụng y tế thông minh cho người Việt — tư vấn triệu chứng, tra cứu thuốc, chăm sóc sức khỏe tâm thần và theo dõi thể lực.
+<p align="center">
+  <strong>Nền tảng trợ lý sức khỏe đa phương thức cho người Việt</strong><br />
+  Triage triệu chứng, tra cứu thuốc, RAG y tế, sức khỏe tinh thần, fitness và nhận diện ngôn ngữ ký hiệu Việt.
+</p>
+
+<p align="center">
+  <img alt="FastAPI" src="https://img.shields.io/badge/backend-FastAPI-009688?logo=fastapi&logoColor=white" />
+  <img alt="Next.js" src="https://img.shields.io/badge/web-Next.js-000000?logo=next.js&logoColor=white" />
+  <img alt="Flutter" src="https://img.shields.io/badge/mobile-Flutter-02569B?logo=flutter&logoColor=white" />
+  <img alt="AI" src="https://img.shields.io/badge/AI-MedGemma%20%2B%20RAG-6C63FF" />
+  <img alt="Status" src="https://img.shields.io/badge/status-research%20prototype-F59E0B" />
+</p>
+
+Ứng dụng y tế thông minh cho người Việt — tư vấn triệu chứng, tra cứu thuốc, chăm sóc sức khỏe tâm thần và theo dõi thể lực trên web và mobile.
 
 > **Lưu ý y tế:** AI chỉ đưa ra gợi ý sơ bộ, không thay thế chẩn đoán hoặc chỉ định của bác sĩ. Khi có dấu hiệu nặng, hãy gọi cấp cứu **115** hoặc đến cơ sở y tế ngay.
 
@@ -9,6 +22,7 @@
 ## Mục lục
 
 - [Tổng quan](#tổng-quan)
+- [Kết quả benchmark](#kết-quả-benchmark)
 - [Kiến trúc hệ thống](#kiến-trúc-hệ-thống)
 - [Model AI — MedGemma 1.5 4B](#model-ai--medgemma-15-4b)
 - [RAG — Kho kiến thức y tế](#rag--kho-kiến-thức-y-tế)
@@ -39,6 +53,28 @@ Tính năng chính:
 - **Fitness** — theo dõi tập luyện, phát hiện tư thế bằng ML on-device
 - **Cộng đồng** — chia sẻ kinh nghiệm sức khỏe ẩn danh, có kiểm duyệt
 - **Hỗ trợ NKT** — **Sign Mode** nhận diện ngôn ngữ ký hiệu Việt (VSL) realtime on-device + fallback Gemini Vision, voice tiếng Việt, Elderly Mode
+
+---
+
+## Kết quả benchmark
+
+Repository đi kèm benchmark định lượng chạy trực tiếp trên các service thật của backend. Kết quả dưới đây được trích từ [`benchmark_full.log`](benchmark_full.log); kịch bản có thể tái lập bằng [`scripts/benchmark_real.py`](scripts/benchmark_real.py).
+
+| Hạng mục | Quy mô | Kết quả nổi bật |
+|----------|--------|-----------------|
+| **Rule-based triage** | 100 ca có nhãn | Accuracy **89,0%**; emergency recall **100%**; latency trung bình **0,051 ms** |
+| **RAG retrieval** | 30 truy vấn y tế | Hit@1 **93,3% → 96,7%**; Hit@5 **93,3% → 100%**; MRR **93,3% → 97,3%** khi bật synonym expansion |
+| **Drug lookup** | 64.045 records, 20 truy vấn | Positive recall **100%**; 19/20 truy vấn tìm thấy; mean **671,66 ms**, p95 **3.652,51 ms** |
+| **Triage throughput** | 1.000 lượt gọi local | Mean **0,061 ms**; p99 **0,099 ms**; khoảng **16.453 req/s** trên benchmark machine |
+| **Adapter routing** | 9 prompt kiểm tra | Adapter làm thay đổi top-1 retrieval ở **5/9** prompt |
+
+Chạy lại benchmark từ thư mục gốc:
+
+```bash
+python scripts/benchmark_real.py --output apps/backend_fastapi/output/benchmark_real_report.json
+```
+
+> **Phạm vi kết quả:** đây là engineering benchmark trên tập đánh giá nhỏ, curated và môi trường local; không phải thử nghiệm lâm sàng, không chứng minh hiệu quả chẩn đoán và không nên được diễn giải như chứng nhận thiết bị y tế. Chỉ số latency/throughput phụ thuộc phần cứng và trạng thái cache.
 
 ---
 
@@ -90,7 +126,7 @@ FastAPI **không load model trực tiếp**. Model chạy trong GPU process riê
 | Phương pháp fine-tune | **QLoRA** (4-bit NF4 quantization, không train lại full model) |
 | LoRA — Medical adapter (đang trên disk + HF) | r=64, alpha=64, dropout=0.05 (~250 MB) — train trước đó, KHÔNG khớp default của bất kỳ script nào trong repo hiện tại |
 | LoRA — Psychology adapter (đang trên disk + HF) | r=8, alpha=16, dropout=0.1 (~62 MB) — match `scripts/cloud/rtx4090_train_psychology.py` defaults |
-| LoRA — Script defaults (nếu re-train) | `train_qlora_medgemma.py`: r=32 / α=64 — `cloud/h100_train_medical.py`: r=16 / α=32 — `train_medical_adapter.ipynb`: r=16 / α=32 — `train_psychology_adapter.ipynb`: r=16 / α=32 (5 epochs) |
+| LoRA — Script defaults (nếu re-train) | `scripts/train_qlora_medgemma.py`: r=32 / α=64 — `scripts/cloud/h100_train_medical.py`: r=16 / α=32 — `train_medical_adapter.ipynb`: r=16 / α=32 — `train_psychology_adapter.ipynb`: r=16 / α=32 (5 epochs) |
 | Target modules | `q_proj`, `k_proj`, `v_proj`, `o_proj`, `gate_proj`, `up_proj`, `down_proj` (attention + MLP) |
 | GPU yêu cầu | RTX 4090 (24 GB) hoặc 2× T4 (Kaggle free) — production khuyến nghị H100 80GB cho Flash-Attention 2 |
 
@@ -135,10 +171,10 @@ Dataset đã tách thành 2 file riêng cho 2 adapter, đẩy lên HuggingFace:
 
 | File | Records | Train cho |
 |------|--------:|-----------|
-| `medical_train.jsonl` | 15.693 | Medical Adapter |
-| `medical_eval.jsonl` | 2.770 | Medical Adapter (eval) |
-| `psychology_train.jsonl` | 1.201 | Psychology Adapter |
-| `psychology_eval.jsonl` | 212 | Psychology Adapter (eval) |
+| `data/training_clean/medgemma_4b/medical_train.jsonl` | 15.693 | Medical Adapter |
+| `data/training_clean/medgemma_4b/medical_eval.jsonl` | 2.770 | Medical Adapter (eval) |
+| `data/training_clean/medgemma_4b/psychology_train.jsonl` | 1.201 | Psychology Adapter |
+| `data/training_clean/medgemma_4b/psychology_eval.jsonl` | 212 | Psychology Adapter (eval) |
 
 ```
 data/training_clean/medgemma_4b/
@@ -239,13 +275,13 @@ MediSign hỗ trợ người khiếm thính/khiếm ngôn nhập triệu chứng
 
 ### 1. Realtime on-device (mặc định)
 
-`VslRecognitionService` (`lib/vsl/VslRecognitionService.ts`) chạy 100% trên trình duyệt, không gọi API:
+`VslRecognitionService` (`apps/web_next/lib/vsl/VslRecognitionService.ts`) chạy 100% trên trình duyệt, không gọi API:
 
 - **MediaPipe Tasks-Vision** (Hand + Face + Pose landmarker) trích keypoint mỗi frame.
-- Ghép thành feature vector **495-D** (45 pose + 126 hand + 324 face) — định nghĩa tại `lib/vsl/landmarkSpec.ts`.
+- Ghép thành feature vector **495-D** (45 pose + 126 hand + 324 face) — định nghĩa tại `apps/web_next/lib/vsl/landmarkSpec.ts`.
 - Head-pose de-rotation (Procrustes matrix) + body-relative normalization để bất biến với góc nghiêng đầu và khoảng cách camera.
 - Sliding window 30 frame → model **Bi-LSTM** (TensorFlow.js) inference liên tục, voting + confidence/margin gate trước khi emit.
-- Component UI: `components/chat/VslRealtimeComposer.tsx` — mở camera, hiển thị ký hiệu nhận diện realtime, ghép thành câu rồi gửi vào chat.
+- Component UI: `apps/web_next/components/chat/VslRealtimeComposer.tsx` — mở camera, hiển thị ký hiệu nhận diện realtime, ghép thành câu rồi gửi vào chat.
 
 Model assets: `public/models/vsl/` (`classes.json`, `weights.json`, `weights.bin`).
 Từ vựng nạp từ `classes.json` (single source of truth) — mục tiêu giai đoạn 1 là **150 từ y tế**, mở rộng 300-500 từ ở giai đoạn sau. Code fallback 10 lớp khi chưa có manifest.
@@ -258,7 +294,7 @@ Khi cần độ chính xác cao hơn hoặc thiết bị yếu, người dùng q
 - `GOOGLE_GEMINI_API_KEY` chỉ đọc ở server (Next.js Route Handler), **không** expose ra browser — không đặt prefix `NEXT_PUBLIC_`.
 - Free tier (Dec 2025): 10 RPM / 250 RPD / 250K TPM — đủ cho demo + dev.
 
-Helper liên quan: `lib/sign/` (`recognize.ts`, `tokenize.ts`, `useVideoRecorder.ts`, `vslDictionary.ts`).
+Helper liên quan: `lib/sign/` (`apps/web_next/lib/sign/recognize.ts`, `apps/web_next/lib/sign/tokenize.ts`, `apps/web_next/lib/sign/useVideoRecorder.ts`, `apps/web_next/lib/sign/vslDictionary.ts`).
 
 > Lấy API key free tại [aistudio.google.com](https://aistudio.google.com/) → "Get API key" (không cần thẻ). Đặt vào `apps/web_next/.env.local`.
 
@@ -270,13 +306,13 @@ Backend ưu tiên file lớn nhất có sẵn, fallback về file nhỏ hơn:
 
 | File | Records | Ghi chú |
 |------|--------:|---------|
-| `drug_database_dav_detailed_10k.json` | 64.045 | **Ưu tiên 1** — DAV chi tiết, nguồn `dichvucong.dav.gov.vn` |
-| `drug_database_10k_full.json` | 12.570 | Ưu tiên 2 |
-| `drug_database_10k.json` | 8.149 | Ưu tiên 3 |
-| `drug_database_expanded.json` | 801 | Ưu tiên 4 |
-| `drug_database.json` | 242 | Fallback cuối (legacy) |
+| `data/training_clean/drug_database_dav_detailed_10k.json` | 64.045 | **Ưu tiên 1** — DAV chi tiết, nguồn `dichvucong.dav.gov.vn` |
+| `data/training_clean/drug_database_10k_full.json` | 12.570 | Ưu tiên 2 |
+| `data/training_clean/drug_database_10k.json` | 8.149 | Ưu tiên 3 |
+| `data/training_clean/drug_database_expanded.json` | 801 | Ưu tiên 4 |
+| `data/training_clean/drug_database.json` | 242 | Fallback cuối (legacy) |
 
-File chính (`drug_database_dav_detailed_10k.json`) — crawl đầy đủ 53.814/53.814 records từ DAV:
+File chính (`data/training_clean/drug_database_dav_detailed_10k.json`) — crawl đầy đủ 53.814/53.814 records từ DAV:
 - Tên thuốc, hoạt chất, dạng bào chế, hàm lượng
 - Số đăng ký, nhà sản xuất
 - Chống chỉ định, tác dụng phụ, tương tác, cảnh báo
@@ -662,7 +698,7 @@ SoulGarden:
 | GET | `/admin/workouts` | Xem lịch sử tập luyện |
 | GET | `/admin/goals` | Xem mục tiêu thể dục |
 | GET | `/admin/kb-pending` | Danh sách KB record đợi duyệt |
-| POST | `/admin/kb-pending/{id}/approve` | Duyệt → promote vào `knowledge_base.json` + tạo edges |
+| POST | `/admin/kb-pending/{id}/approve` | Duyệt → promote vào `data/knowledge_base/knowledge_base.json` + tạo edges |
 | POST | `/admin/kb-pending/{id}/reject` | Từ chối record |
 | GET | `/admin/kb-pending/stats` | Thống kê pending records |
 | GET | `/admin/weight-proposals` | Đề xuất chỉnh trọng số bệnh-triệu chứng (sinh từ feedback loop) |
@@ -747,19 +783,21 @@ python scripts/train_qlora_medgemma.py \
 
 ## Trạng thái hiện tại
 
+Các trạng thái dưới đây phản ánh mức độ hiện diện trong repository, không đồng nghĩa với chứng nhận production hoặc thẩm định lâm sàng.
+
 | Component | Trạng thái | Ghi chú |
 |-----------|-----------|---------|
-| Rule-based triage | ✅ Done | Keyword matching, Vietnamese normalization |
-| Drug lookup (DAV) | ✅ Done | 64.045 records, số đăng ký, hoạt chất, tương tác |
-| RAG knowledge base | ✅ Done | 128.380 records, BM25 local, auto-reload |
-| FastAPI backend | ✅ Done | Auth, triage, medicine, AI chat, admin |
-| Next.js web app | ✅ Done | Full auth flow, chat, medicine, soul-garden |
-| Sign Mode VSL (realtime on-device) | ✅ Done | TFJS Bi-LSTM + MediaPipe, wired vào chat (`VslRealtimeComposer`) |
-| Sign Mode VSL (Gemini video fallback) | ✅ Done | Route `/api/sign/recognize`, Gemini 2.5 Flash |
+| Rule-based triage | ✅ Implemented | Keyword matching, Vietnamese normalization; có benchmark định lượng |
+| Drug lookup (DAV) | ✅ Implemented | 64.045 records, số đăng ký, hoạt chất, tương tác |
+| RAG knowledge base | ✅ Implemented | 128.380 records, BM25 local, auto-reload |
+| FastAPI backend | ✅ Implemented | Auth, triage, medicine, AI chat, admin |
+| Next.js web app | ✅ Implemented | Auth flow, chat, medicine, soul-garden |
+| Sign Mode VSL (realtime on-device) | 🧪 Prototype | TFJS Bi-LSTM + MediaPipe, wired vào chat (`VslRealtimeComposer`) |
+| Sign Mode VSL (Gemini video fallback) | 🧪 Prototype | Route `/api/sign/recognize`, Gemini 2.5 Flash |
 | Flutter mobile | 🔄 Partial | UI done, API integration một phần (mock mode) |
-| MedGemma 1.5 4B Medical adapter | 🔜 Ready to train | 15.693 records sẵn sàng, notebook H100 sẵn |
-| MedGemma Psychology adapter | 🔜 Ready to train | 1.201 OARS records (DeepSeek-regenerated), notebook H100 sẵn |
-| Dual adapter runtime server | ✅ Done | Single endpoint, route theo `model` field |
+| MedGemma 1.5 4B Medical adapter | 🧪 Artifact available | Adapter và 15.693 training records có trong pipeline; cần quality benchmark cố định |
+| MedGemma Psychology adapter | 🧪 Artifact available | Adapter và 1.201 OARS records có trong pipeline; cần quality benchmark cố định |
+| Dual adapter runtime server | ✅ Implemented | Single endpoint, route theo `model` field |
 | Vision drug classifier | ❌ Not ready | Cần 10k+ ảnh thuốc có nhãn |
 | Fixed eval sets | ❌ Incomplete | `data/eval_sets` cần real cases |
 
